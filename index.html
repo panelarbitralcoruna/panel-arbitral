@@ -1,0 +1,3043 @@
+<!DOCTYPE html>
+<html lang="gl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Panel Arbitral — Evaluación de árbitros</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #15171b; --panel: #1d2027; --panel-2: #242833; --line: #323744;
+    --text: #edeff2; --text-dim: #9aa1af;
+    --wood: #a9682f; --wood-dim: #7a4c22; --cyan: #49c7c2;
+    --verde: #3fb950; --amarillo: #e3b341; --naranja: #e8802a; --rojo: #e5484d; --na: #5a6270;
+    --radius: 6px;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh; position:relative; overflow-x:hidden; }
+  body::before{
+    content:''; position:fixed; inset:-12%; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(ellipse at 18% 12%, rgba(169,104,47,.36), transparent 42%),
+      radial-gradient(ellipse at 88% 82%, rgba(73,199,194,.16), transparent 48%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 500'><rect x='20' y='20' width='760' height='460' fill='none' stroke='%23a9682f' stroke-width='3'/><line x1='400' y1='20' x2='400' y2='480' stroke='%23a9682f' stroke-width='3'/><circle cx='400' cy='250' r='72' fill='none' stroke='%23a9682f' stroke-width='3'/><circle cx='400' cy='250' r='4' fill='%23a9682f'/><path d='M20,88 A312,312 0 0,1 20,412' fill='none' stroke='%23a9682f' stroke-width='3'/><path d='M780,88 A312,312 0 0,0 780,412' fill='none' stroke='%23a9682f' stroke-width='3'/><rect x='20' y='170' width='140' height='160' fill='none' stroke='%23a9682f' stroke-width='3'/><rect x='640' y='170' width='140' height='160' fill='none' stroke='%23a9682f' stroke-width='3'/></svg>") center/62% no-repeat;
+    filter: blur(42px);
+    opacity:.68;
+    animation: driftA 24s ease-in-out infinite;
+  }
+  body::after{
+    content:''; position:fixed; inset:-14%; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(circle at 30% 65%, rgba(232,128,42,.22), transparent 30%),
+      radial-gradient(circle at 70% 25%, rgba(73,199,194,.18), transparent 32%);
+    filter: blur(58px);
+    opacity:.85;
+    animation: driftB 15s ease-in-out infinite alternate;
+  }
+  #bg-ball{
+    position:fixed; z-index:0; pointer-events:none; top:8%; left:-160px;
+    width:220px; height:220px; opacity:.16;
+    animation: floatBall 38s linear infinite, spinBall 46s linear infinite;
+    filter: blur(1px);
+  }
+  #bg-ball svg{ width:100%; height:100%; display:block; }
+  @keyframes driftA{
+    0%,100%{ transform: translate(0,0) scale(1) rotate(0deg); }
+    50%{ transform: translate(-4%, 4%) scale(1.08) rotate(2deg); }
+  }
+  @keyframes driftB{
+    0%{ transform: translate(-4%,-2%) scale(1); }
+    100%{ transform: translate(4%, 3%) scale(1.12); }
+  }
+  @keyframes floatBall{
+    0%{ left:-160px; top:8%; }
+    25%{ top:58%; }
+    50%{ left:calc(100% + 160px); top:14%; }
+    50.001%{ left:-160px; top:70%; }
+    75%{ top:22%; }
+    100%{ left:calc(100% + 160px); top:64%; }
+  }
+  @keyframes spinBall{
+    from{ transform: rotate(0deg); }
+    to{ transform: rotate(360deg); }
+  }
+  header, main, .toast, #login-screen{ position:relative; z-index:1; }
+  h1,h2,h3,.display{ font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.03em; }
+  .tabular{ font-variant-numeric: tabular-nums; }
+
+  header{ position:sticky; top:0; z-index:20; background:linear-gradient(180deg,#1a1d24,#15171b 90%); border-bottom:1px solid var(--line); padding:14px 16px 0 16px; }
+  .brand{ display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .brand-dot{ width:12px;height:12px;border-radius:50%; background:var(--wood); box-shadow:0 0 10px var(--wood); }
+  .brand h1{ font-size:18px; margin:0; font-weight:600; }
+  .brand span{ color:var(--text-dim); font-family:'Inter',sans-serif; text-transform:none; letter-spacing:0; font-size:12px; }
+
+  nav{ display:flex; gap:4px; overflow-x:auto; }
+  nav button{ flex:1; min-width:80px; background:none; border:none; color:var(--text-dim); font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.04em; font-size:12px; padding:10px 6px; cursor:pointer; border-bottom:3px solid transparent; transition:.15s; white-space:nowrap; }
+  nav button.active{ color:var(--text); border-bottom-color:var(--wood); }
+  nav button:hover{ color:var(--text); }
+
+  main{ max-width:760px; margin:0 auto; padding:18px 14px 80px 14px; }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:14px; }
+  .card h2{ font-size:15px; margin:0 0 12px 0; color:var(--text-dim); font-weight:500; }
+  label{ display:block; font-size:12px; color:var(--text-dim); margin-bottom:4px; margin-top:12px; font-weight:500; }
+  label:first-child{ margin-top:0; }
+  input[type=text], input[type=date], select, textarea{ width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:10px; border-radius:var(--radius); font-family:'Inter',sans-serif; font-size:14px; }
+  textarea{ min-height:56px; resize:vertical; }
+  input:focus, select:focus, textarea:focus, button:focus-visible{ outline:2px solid var(--cyan); outline-offset:1px; }
+
+  .grupo-titulo{ font-size:12px; color:var(--wood); margin:18px 0 4px 0; letter-spacing:.05em; }
+  .grupo-titulo:first-of-type{ margin-top:6px; }
+
+  .criterio-row{ padding:10px 0; border-top:1px solid var(--line); }
+  .criterio-row:first-of-type{ border-top:none; }
+  .criterio-label{ font-size:14px; margin-bottom:8px; }
+  .semaforo{ display:flex; gap:8px; }
+  .luz{ flex:1; height:40px; border-radius:var(--radius); border:2px solid transparent; cursor:pointer; display:flex; align-items:center; justify-content:center; font-family:'Oswald',sans-serif; font-weight:600; font-size:13px; color:#0b0c0e; opacity:.5; transition:.12s; user-select:none; }
+  .luz:hover{ opacity:.8; }
+  .luz.selected{ opacity:1; border-color:#fff; transform:scale(1.05); box-shadow:0 0 0 2px rgba(255,255,255,.15); }
+  .luz.v9{ background:var(--verde); } .luz.v7{ background:var(--amarillo); }
+  .luz.v5{ background:var(--naranja); } .luz.v3{ background:var(--rojo); }
+  .luz.na{ background:var(--na); color:#e8eaee; flex:0 0 52px; font-size:11px; }
+  .luz.con-texto{ font-size:10px; line-height:1.15; white-space:normal; padding:3px 4px; font-weight:600; text-transform:none; letter-spacing:0; }
+  .caption-legend{ display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; font-size:11px; color:var(--text-dim); }
+  .caption-legend .cap-item{ display:flex; align-items:center; gap:4px; }
+  .caption-legend .dot{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+
+  .btn{ background:var(--wood); color:#fff; border:none; padding:12px 18px; border-radius:var(--radius); font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.04em; font-size:14px; cursor:pointer; width:100%; margin-top:16px; transition:.15s; }
+  .btn:hover{ background:var(--wood-dim); }
+  .btn.secondary{ background:var(--panel-2); border:1px solid var(--line); color:var(--text); width:auto; margin-top:0; padding:8px 14px; font-size:12px; }
+  .btn.secondary.active{ background:var(--wood); border-color:var(--wood); color:#fff; }
+  .btn.danger{ background:transparent; border:1px solid var(--rojo); color:var(--rojo); width:auto; padding:6px 10px; font-size:11px; margin-top:0; }
+  .btn.small{ width:auto; padding:8px 14px; font-size:12px; margin-top:0; }
+  .btn.iconbtn{ width:44px; flex:0 0 44px; padding:0; margin-top:0; font-size:18px; line-height:1; }
+
+  .row{ display:flex; gap:10px; align-items:flex-end; }
+  .row > *{ flex:1; }
+  .erow{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; align-items:center; }
+
+  .toast{ position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:var(--panel-2); border:1px solid var(--cyan); color:var(--text); padding:10px 18px; border-radius:var(--radius); font-size:13px; z-index:50; opacity:0; transition:.3s; pointer-events:none; }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(-4px); }
+
+  .modal-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.65); display:flex; align-items:center; justify-content:center; z-index:200; padding:20px; }
+  .modal-box{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:20px; max-width:360px; width:100%; }
+
+  .summary-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px; }
+  .summary-box{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:12px; text-align:center; }
+  .summary-box .num{ font-family:'Oswald',sans-serif; font-size:26px; font-weight:600; }
+  .summary-box .lbl{ font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.03em; }
+
+  .filters{ display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .filters > *{ flex:1; min-width:110px; }
+
+  .ref-card{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px; margin-bottom:8px; display:flex; align-items:center; gap:12px; cursor:pointer; transition:.12s; }
+  .ref-card:hover{ border-color:var(--wood); }
+  .ref-avg{ font-family:'Oswald',sans-serif; font-size:24px; font-weight:700; width:52px; text-align:center; padding:4px 0; border-radius:var(--radius); color:#0b0c0e; flex-shrink:0; }
+
+  .carnet-foto{ width:72px; height:72px; border-radius:8px; object-fit:cover; border:1px solid var(--line); background:var(--panel-2); flex-shrink:0; display:block; }
+  .carnet-foto-placeholder{ width:72px; height:72px; border-radius:8px; border:1px dashed var(--line); background:var(--panel-2); color:var(--text-dim); display:flex; align-items:center; justify-content:center; font-family:'Oswald',sans-serif; font-size:22px; flex-shrink:0; }
+  .carnet-wrap{ display:flex; flex-direction:column; align-items:center; gap:6px; flex-shrink:0; }
+  .carnet-upload-btn{ font-size:10px; padding:4px 8px; margin:0; }
+  .ref-info{ flex:1; min-width:0; }
+  .ref-name{ font-size:14px; font-weight:600; }
+  .ref-meta{ font-size:11px; color:var(--text-dim); margin-top:2px; }
+  .badge{ display:inline-block; font-size:10px; padding:2px 7px; border-radius:20px; border:1px solid var(--line); color:var(--text-dim); margin-left:6px; }
+
+  .empty{ text-align:center; padding:30px 10px; color:var(--text-dim); font-size:13px; }
+
+  .detail-back{ background:none; border:none; color:var(--cyan); font-size:13px; cursor:pointer; padding:0; margin-bottom:12px; }
+  .crit-avg-row{ display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-top:1px solid var(--line); font-size:13px; gap:10px; }
+  .crit-avg-row:first-of-type{ border-top:none; }
+  .crit-avg-row .grp{ font-size:10px; color:var(--text-dim); display:block; text-transform:uppercase; letter-spacing:.03em; }
+  .chip{ min-width:34px; text-align:center; padding:2px 6px; border-radius:4px; font-family:'Oswald',sans-serif; font-weight:600; color:#0b0c0e; font-size:12px; flex-shrink:0; }
+  .chip.gray{ background:var(--na); color:#e8eaee; }
+  .ref-avg.v9, .chip.v9{ background:var(--verde); }
+  .ref-avg.v7, .chip.v7{ background:var(--amarillo); }
+  .ref-avg.v5, .chip.v5{ background:var(--naranja); }
+  .ref-avg.v3, .chip.v3{ background:var(--rojo); }
+
+  .word-chip{ display:inline-block; text-align:center; font-family:'Oswald',sans-serif; font-weight:700; letter-spacing:.03em; padding:3px 12px; border-radius:4px; background:rgba(255,255,255,.04); border:1.5px solid; flex-shrink:0; }
+  .word-chip.v9{ color:var(--verde); border-color:var(--verde); }
+  .word-chip.v7{ color:var(--amarillo); border-color:var(--amarillo); }
+  .word-chip.v5{ color:var(--naranja); border-color:var(--naranja); }
+  .word-chip.v3{ color:var(--rojo); border-color:var(--rojo); }
+  .word-chip.gray{ color:var(--text-dim); border-color:var(--line); }
+
+  .eval-entry{ border-top:1px solid var(--line); padding:12px 0; font-size:13px; }
+  .eval-entry:first-of-type{ border-top:none; }
+  .eval-entry .top{ display:flex; justify-content:space-between; color:var(--text-dim); font-size:11px; margin-bottom:6px; gap:8px;}
+  .eval-entry .comment-lbl{ font-size:10px; text-transform:uppercase; letter-spacing:.03em; color:var(--text-dim); margin-top:6px; }
+  .eval-entry .comment-txt{ margin-top:2px; }
+  .comment-txt{ white-space:pre-wrap; }
+
+  .comment-block{ margin-top:10px; padding:8px 10px; border-radius:4px; border-left:3px solid var(--line); background:rgba(255,255,255,.03); }
+  .comment-block .comment-lbl{ margin-top:0; }
+  .comment-block.interna{ border-left-color:var(--wood); background:rgba(169,104,47,.08); }
+  .comment-block.interna .comment-lbl{ color:var(--wood); }
+  .comment-block.feedback{ border-left-color:var(--cyan); background:rgba(73,199,194,.06); }
+  .comment-block.feedback .comment-lbl{ color:var(--cyan); }
+
+  .list-item{ display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-top:1px solid var(--line); font-size:13px; gap:8px; }
+  .list-item:first-of-type{ border-top:none; }
+  .list-item .meta{ color:var(--text-dim); font-size:10px; display:block; }
+
+  .edit-form{ background:var(--panel-2); border:1px solid var(--line); border-radius:var(--radius); padding:12px; margin:0 0 10px 0; }
+
+  .crit-drag-item{ display:flex; align-items:center; gap:8px; padding:8px 0; border-top:1px solid var(--line); background:var(--panel); touch-action:none; }
+  .crit-drag-item:first-of-type{ border-top:none; }
+  .crit-drag-handle{ cursor:grab; color:var(--text-dim); font-size:18px; padding:4px 6px; flex-shrink:0; user-select:none; line-height:1; touch-action:none; }
+  .crit-drag-item.dragging{ opacity:.4; }
+  .crit-drag-item.drag-over-before{ box-shadow: inset 0 2px 0 var(--cyan); }
+  .crit-drag-item.drag-over-after{ box-shadow: inset 0 -2px 0 var(--cyan); }
+  .grp-block{ margin-top:16px; border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; touch-action:none; }
+  .grp-block:first-of-type{ margin-top:0; }
+  .grp-block.dragging{ opacity:.4; }
+  .grp-drag-item{ display:flex; align-items:center; gap:8px; padding:8px 10px; background:var(--panel-2); }
+  .grp-drag-handle{ cursor:grab; color:var(--text-dim); font-size:15px; letter-spacing:-2px; padding:4px 6px; flex-shrink:0; user-select:none; line-height:1; touch-action:none; }
+  .mini-color-inputs{ display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin-top:6px; }
+  .mini-color-inputs input{ font-size:12px; padding:6px; }
+  .chk-inline{ display:flex; align-items:center; gap:6px; margin:0; font-size:12px; color:var(--text-dim); }
+  .chk-inline input{ width:auto; }
+
+  .banner-warn{ background:rgba(232,128,42,.12); border:1px solid var(--naranja); color:var(--text); padding:10px 12px; border-radius:var(--radius); font-size:12px; line-height:1.5; margin-bottom:14px; }
+
+  .eval-collapse{ border-top:1px solid var(--line); padding:10px 0; }
+  .eval-collapse:first-of-type{ border-top:none; }
+  .eval-collapse-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; cursor:pointer; }
+  .eval-collapse-head:hover{ opacity:.85; }
+  .eval-collapse-body{ margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); }
+  .chevron{ color:var(--text-dim); font-size:12px; transition:.15s; display:inline-block; }
+  .eval-collapse-head.open .chevron{ transform:rotate(90deg); color:var(--cyan); }
+
+  #login-screen{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; position:relative; z-index:1; }
+  .login-wrap{ width:100%; max-width:720px; }
+  .login-cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; margin-top:28px; }
+  .login-card{ background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:20px 16px; text-align:center; }
+  .login-card h3{ font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.04em; font-size:15px; margin:0 0 4px 0; }
+  .login-card p{ font-size:12px; color:var(--text-dim); margin:0 0 14px 0; }
+  .login-card input{ text-align:center; margin-bottom:10px; }
+
+  .hidden{ display:none !important; }
+  .note{ font-size:11px; color:var(--text-dim); margin-top:10px; line-height:1.5; }
+</style>
+</head>
+<body>
+
+<div id="bg-ball" aria-hidden="true">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="50" r="46" fill="none" stroke="#e8802a" stroke-width="2.4"/>
+    <path d="M4,50 H96" fill="none" stroke="#e8802a" stroke-width="2.4"/>
+    <path d="M50,4 V96" fill="none" stroke="#e8802a" stroke-width="2.4"/>
+    <path d="M15,15 C35,35 35,65 15,85" fill="none" stroke="#e8802a" stroke-width="2.4"/>
+    <path d="M85,15 C65,35 65,65 85,85" fill="none" stroke="#e8802a" stroke-width="2.4"/>
+  </svg>
+</div>
+
+<div id="login-screen">
+  <div class="login-wrap">
+    <div class="brand" style="justify-content:center;">
+      <div class="brand-dot"></div>
+      <div>
+        <h1>Panel Arbitral</h1>
+        <span>Comité de A Coruña — Federación Galega de Baloncesto</span>
+      </div>
+    </div>
+    <div class="login-cards">
+      <div class="login-card">
+        <h3>Árbitro / Oficial</h3>
+        <p>Consulta o teu propio informe</p>
+        <input type="password" id="login-arbitro-codigo" inputmode="numeric" placeholder="O teu código">
+        <button class="btn" id="login-arbitro-btn">Entrar</button>
+      </div>
+      <div class="login-card">
+        <h3>Técnico</h3>
+        <p>Consulta todos os informes</p>
+        <input type="password" id="login-tecnico-pin" inputmode="numeric" placeholder="O teu PIN persoal">
+        <button class="btn secondary" id="login-tecnico-btn" style="width:100%;">Entrar</button>
+      </div>
+      <div class="login-card">
+        <h3>Administrador</h3>
+        <p>Acceso completo e configuración</p>
+        <input type="password" id="login-admin-pin" inputmode="numeric" placeholder="PIN de administrador">
+        <button class="btn secondary" id="login-admin-btn" style="width:100%;">Entrar</button>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:20px;">Versión del código: 2026-10-05 · rev. firebase</p>
+    <p id="login-estado" style="text-align:center;font-size:12px;color:var(--text-dim);margin-top:10px;">Conectando con la base de datos…</p>
+  </div>
+</div>
+
+<div id="app-shell" class="hidden">
+<header>
+  <div class="brand">
+    <div class="brand-dot"></div>
+    <div>
+      <h1>Panel Arbitral</h1>
+      <span>Comité de A Coruña — Federación Galega de Baloncesto</span>
+    </div>
+    <button class="btn secondary" id="btn-logout" style="margin-left:auto;width:auto;">Salir</button>
+  </div>
+  <nav>
+    <button class="tab-btn active" data-tab="evaluar">Evaluar</button>
+    <button class="tab-btn" data-tab="informes">Informes</button>
+    <button class="tab-btn" data-tab="asistencia">Asistencia</button>
+    <button class="tab-btn" data-tab="ajustes">Ajustes</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- EVALUAR -->
+  <section id="view-evaluar">
+    <div class="card hidden" id="ev-colectivo-wrap">
+      <label style="margin-top:0;">Colectivo</label>
+      <div class="row">
+        <button type="button" class="btn secondary" id="ev-col-arbitro">Árbitros</button>
+        <button type="button" class="btn secondary" id="ev-col-oficial">Oficiales de mesa</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Nueva evaluación de partido</h2>
+
+      <label for="ev-formador">Formador/a</label>
+      <div class="row">
+        <select id="ev-formador"></select>
+        <button class="btn iconbtn" id="ev-add-formador" title="Añadir formador nuevo">+</button>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="ev-arbitro" id="ev-arbitro-label">Árbitro</label>
+          <select id="ev-arbitro"></select>
+        </div>
+        <div>
+          <label for="ev-fecha">Fecha</label>
+          <input type="date" id="ev-fecha">
+        </div>
+      </div>
+
+      <label for="ev-partido">Equipos / partido</label>
+      <input type="text" id="ev-partido" placeholder="Ej. Equipo A vs Equipo B">
+
+      <label for="ev-cat-partido">Categoría do partido</label>
+      <select id="ev-cat-partido"></select>
+      <div class="row hidden" id="ev-genero-toggle" style="margin-top:8px;">
+        <button type="button" class="btn secondary" id="ev-genero-m">Masculino</button>
+        <button type="button" class="btn secondary" id="ev-genero-f">Femenino</button>
+      </div>
+
+      <div class="hidden" id="ev-rol-oficial-wrap">
+        <label for="ev-rol-oficial">Función desempeñada</label>
+        <select id="ev-rol-oficial">
+          <option value="">Selecciona función…</option>
+        </select>
+      </div>
+
+      <div id="ev-criterios" style="margin-top:6px;"></div>
+
+      <div class="card hidden" id="ev-pronostico-wrap" style="margin-top:16px;background:var(--panel-2);">
+        <label style="margin-top:0;">Pronóstico do árbitro</label>
+        <div class="row">
+          <button type="button" class="btn secondary" id="ev-pron-ascender">Ascender</button>
+          <button type="button" class="btn secondary" id="ev-pron-mantener">Mantener</button>
+          <button type="button" class="btn secondary" id="ev-pron-descender">Descender</button>
+        </div>
+      </div>
+
+      <label for="ev-interna">Valoración interna (solo comité)</label>
+      <textarea id="ev-interna" placeholder="Notas para el seguimiento del comité..."></textarea>
+
+      <label for="ev-feedback">Valoración para el árbitro</label>
+      <textarea id="ev-feedback" placeholder="Comentarios que se compartirán con el árbitro para trabajar..."></textarea>
+
+      <button class="btn" id="ev-guardar">Guardar evaluación</button>
+      <p class="note">Esta pestaña no pide PIN. Informes y Ajustes sí lo piden, para que solo los técnicos entren ahí.</p>
+    </div>
+  </section>
+
+  <!-- INFORMES -->
+  <section id="view-informes" class="hidden">
+    <div class="card hidden" id="inf-colectivo-wrap">
+      <label style="margin-top:0;">Colectivo</label>
+      <div class="row">
+        <button type="button" class="btn secondary" id="inf-col-arbitro">Árbitros</button>
+        <button type="button" class="btn secondary" id="inf-col-oficial">Oficiales de mesa</button>
+      </div>
+    </div>
+    <div id="informes-lista">
+      <div class="summary-grid" id="resumen-general"></div>
+      <div class="filters">
+        <input type="text" id="f-buscar" placeholder="Buscar árbitro...">
+        <select id="f-categoria">
+          <option value="">Todas las categorías</option>
+        </select>
+        <select id="f-orden">
+          <option value="avg-desc">Media: mayor a menor</option>
+          <option value="avg-asc">Media: menor a mayor</option>
+          <option value="nombre">Nombre A-Z</option>
+          <option value="num-desc">Nº evaluaciones</option>
+          <option value="fecha-desc">Evaluación más reciente</option>
+        </select>
+      </div>
+      <div id="ref-cards"></div>
+      <button class="btn secondary hidden" id="btn-export-csv" style="width:100%;margin-top:8px;">⬇ Exportar todo a CSV (Excel)</button>
+    </div>
+
+    <div id="informes-detalle" class="hidden">
+      <button class="detail-back" id="btn-volver">← Volver al listado</button>
+      <div class="card" id="detalle-cabecera"></div>
+      <div class="card">
+        <h2>Medias por categoría</h2>
+        <div id="detalle-categorias"></div>
+      </div>
+      <div class="card hidden" id="detalle-tests-wrap">
+        <h2>Tests de reglas</h2>
+        <div id="detalle-tests"></div>
+      </div>
+      <div class="card">
+        <h2>Evolución</h2>
+        <div id="detalle-evolucion"></div>
+      </div>
+      <div class="card">
+        <h2>Informes por partido</h2>
+        <div id="detalle-historial"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VISTA ÁRBITRO -->
+  <section id="view-vista" class="hidden">
+    <div id="vt-resultado"></div>
+  </section>
+
+  <!-- ASISTENCIA -->
+  <section id="view-asistencia" class="hidden">
+    <div class="card hidden" id="af-colectivo-wrap">
+      <label style="margin-top:0;">Colectivo</label>
+      <div class="row">
+        <button type="button" class="btn secondary" id="af-col-arbitro">Árbitros</button>
+        <button type="button" class="btn secondary" id="af-col-oficial">Oficiales de mesa</button>
+      </div>
+    </div>
+    <div id="af-lista-wrap">
+      <div class="card">
+        <h2>Nueva formación</h2>
+        <div class="row">
+          <input type="text" id="af-nombre" placeholder="Nombre de la formación">
+          <input type="date" id="af-fecha">
+        </div>
+        <button class="btn small" id="af-add" style="margin-top:10px;">Crear formación</button>
+      </div>
+
+      <div class="summary-grid" id="af-resumen"></div>
+
+      <div class="card">
+        <h2>Formaciones</h2>
+        <div id="af-lista-formaciones"></div>
+      </div>
+
+      <div class="card">
+        <h2 id="af-global-titulo">Asistencia global por árbitro</h2>
+        <div id="af-global"></div>
+      </div>
+    </div>
+
+    <div id="af-detalle-wrap" class="hidden">
+      <button class="detail-back" id="af-btn-volver">← Volver al listado</button>
+      <div class="card" id="af-detalle-cabecera"></div>
+      <div class="card">
+        <h2>Marca quién asistió</h2>
+        <div id="af-checklist"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AJUSTES -->
+  <section id="view-ajustes" class="hidden">
+    <div class="card">
+      <h2>Seguridad</h2>
+      <label for="aj-pin-admin">PIN de administrador</label>
+      <div class="row">
+        <input type="password" id="aj-pin-admin" placeholder="Nuevo PIN admin" maxlength="8">
+        <button class="btn small" id="aj-pin-admin-guardar">Guardar</button>
+      </div>
+      <p class="note">Por defecto: 9999. Cámbialo y compártelo solo con quien corresponda. Cada técnico tiene ahora su propio PIN personal (ver más abajo, en Formadores). No es cifrado real, solo evita accesos accidentales o curiosos.</p>
+    </div>
+
+    <div class="card">
+      <h2>Copia de seguridad completa</h2>
+      <button class="btn" id="aj-backup-export" style="width:100%;">⬇ Exportar copia completa (todo)</button>
+      <label for="aj-backup-import" style="margin-top:16px;">Restaurar desde una copia</label>
+      <input type="file" id="aj-backup-import" accept="application/json">
+      <button class="btn secondary" id="aj-backup-import-btn" style="width:100%;margin-top:8px;">Restaurar esta copia</button>
+      <p class="note">Los datos se guardan en la base de datos y no se pierden al publicar versiones nuevas de la app. Aun así, <strong>exporta una copia completa de vez en cuando</strong> y guárdala en un sitio seguro (contiene datos personales y PIN). Restaurar sobrescribe todos los datos actuales (árbitros, oficiales, formadores, informes, formaciones, asistencia, ítems y categorías), así que solo hazlo si estás segura.</p>
+    </div>
+
+    <div id="tr-lista-wrap">
+      <div class="card">
+        <h2>Tests de reglas</h2>
+        <label style="margin-top:0;">Colectivo</label>
+        <div class="row">
+          <button type="button" class="btn secondary" id="tr-col-arbitro">Árbitros</button>
+          <button type="button" class="btn secondary" id="tr-col-oficial">Oficiales de mesa</button>
+        </div>
+        <label for="tr-titulo" style="margin-top:12px;">Título del test</label>
+        <input type="text" id="tr-titulo" placeholder="Ej. Test de reglas — Noviembre">
+        <div class="row">
+          <div>
+            <label for="tr-fecha">Fecha</label>
+            <input type="date" id="tr-fecha">
+          </div>
+          <div>
+            <label for="tr-numpreguntas">Nº de preguntas</label>
+            <input type="number" id="tr-numpreguntas" min="1" placeholder="Ej. 15">
+          </div>
+        </div>
+        <label style="margin-top:12px;">Aprobado a partir de (aciertos mínimos por categoría)</label>
+        <div class="row" id="tr-umbrales-wrap"></div>
+        <button class="btn small" id="tr-add" style="margin-top:10px;">Crear test</button>
+        <div id="tr-lista" style="margin-top:14px;"></div>
+      </div>
+    </div>
+
+    <div id="tr-detalle-wrap" class="hidden">
+      <button class="detail-back" id="tr-btn-volver">← Volver al listado</button>
+      <div class="card" id="tr-detalle-cabecera"></div>
+      <div class="card">
+        <h2>Resultados</h2>
+        <div id="tr-checklist"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Árbitros</h2>
+      <div class="row">
+        <input type="text" id="aj-arbitro-nombre" placeholder="Nombre del árbitro">
+        <select id="aj-arbitro-cat" style="max-width:110px;">
+          <option value="A">Cat. A</option>
+          <option value="B">Cat. B</option>
+          <option value="C">Cat. C</option>
+          <option value="D">Cat. D</option>
+          <option value="Iniciación">Iniciación</option>
+        </select>
+      </div>
+      <button class="btn small" id="aj-add-arbitro" style="margin-top:10px;">Añadir árbitro</button>
+      <div id="aj-lista-arbitros" style="margin-top:12px;"></div>
+      <p class="note">Cada árbitro tiene un código de 4 dígitos para entrar en "Vista árbitro". Compárteselo en privado (WhatsApp, email...); puedes regenerarlo si crees que se ha filtrado.</p>
+    </div>
+
+    <div class="card">
+      <h2>Oficiales de mesa</h2>
+      <div class="row">
+        <input type="text" id="aj-oficial-nombre" placeholder="Nombre del oficial">
+        <select id="aj-oficial-cat" style="max-width:150px;">
+          <option value="1">Categoría 1</option>
+          <option value="2">Categoría 2</option>
+        </select>
+      </div>
+      <button class="btn small" id="aj-add-oficial" style="margin-top:10px;">Añadir oficial</button>
+      <div id="aj-lista-oficiales" style="margin-top:12px;"></div>
+      <p class="note">Funciona igual que con los árbitros: código propio para entrar en su vista personal.</p>
+    </div>
+
+    <div class="card">
+      <h2>Formadores</h2>
+      <div class="row">
+        <input type="text" id="aj-formador-nombre" placeholder="Nombre del formador/a">
+        <select id="aj-formador-col" style="max-width:150px;">
+          <option value="arbitro">De árbitros</option>
+          <option value="oficial">De oficiales de mesa</option>
+        </select>
+      </div>
+      <button class="btn small" id="aj-add-formador" style="margin-top:10px;">Añadir</button>
+      <div id="aj-lista-formadores" style="margin-top:12px;"></div>
+      <p class="note">Un formador solo ve y evalúa el colectivo (árbitros u oficiales) que le asignes aquí.</p>
+    </div>
+
+    <div class="card">
+      <h2>Categorías de partido</h2>
+      <div class="row">
+        <input type="text" id="aj-catpartido-nombre" placeholder="Nueva categoría de partido">
+      </div>
+      <button class="btn small" id="aj-add-catpartido" style="margin-top:10px;">Añadir</button>
+      <div id="aj-lista-catpartido" style="margin-top:12px;"></div>
+      <p class="note">Al evaluar se pedirá elegir masculino/femenino salvo que marques "Non precisa selector de xénero" (para categorías cuyo nombre ya lo indica, como "3ª senior mas"). Se comparten entre árbitros y oficiales.</p>
+    </div>
+
+    <div class="card">
+      <h2>Ítems del cuestionario — Árbitros</h2>
+      <div class="row">
+        <input type="text" id="aj-criterio-nombre" placeholder="Nombre del ítem">
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <select id="aj-criterio-grupo"></select>
+        <input type="text" id="aj-criterio-grupo-nuevo" placeholder="…o nombre de grupo nuevo" class="hidden">
+      </div>
+      <div class="erow">
+        <label class="chk-inline"><input type="checkbox" id="aj-criterio-na"> Admite "Non aplica"</label>
+        <label class="chk-inline"><input type="checkbox" id="aj-criterio-nomedia"> Non contar na media</label>
+      </div>
+      <button class="btn small" id="aj-add-criterio" style="margin-top:10px;">Añadir ítem</button>
+      <div id="aj-lista-criterios" style="margin-top:12px;"></div>
+      <p class="note">Todos los ítems (también los precargados) se pueden editar o eliminar. Los cambios solo afectan a evaluaciones nuevas; el historial ya guardado no se modifica.</p>
+    </div>
+
+    <div class="card">
+      <h2>Ítems del cuestionario — Oficiales de mesa</h2>
+      <button class="btn secondary" id="aj-restaurar-oficial" style="width:100%;margin-bottom:12px;">Restaurar ítems predeterminados que falten</button>
+      <div class="row">
+        <input type="text" id="aj-criterio-of-nombre" placeholder="Nombre del ítem">
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <select id="aj-criterio-of-grupo"></select>
+        <input type="text" id="aj-criterio-of-grupo-nuevo" placeholder="…o nombre de grupo nuevo" class="hidden">
+      </div>
+      <div class="erow">
+        <label class="chk-inline"><input type="checkbox" id="aj-criterio-of-na"> Admite "Non aplica"</label>
+        <label class="chk-inline"><input type="checkbox" id="aj-criterio-of-nomedia"> Non contar na media</label>
+      </div>
+      <button class="btn small" id="aj-add-criterio-of" style="margin-top:10px;">Añadir ítem</button>
+      <div id="aj-lista-criterios-of" style="margin-top:12px;"></div>
+      <p class="note">Si el desplegable "Función" en Evaluar no muestra los ítems esperados, pulsa "Restaurar ítems predeterminados que falten" arriba — añade los que falten sin duplicar ni tocar los que ya tengas.</p>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay hidden" id="modal-overlay">
+  <div class="modal-box">
+    <div id="modal-message" style="margin-bottom:14px;font-size:14px;"></div>
+    <input type="text" id="modal-input" class="hidden" style="margin-bottom:14px;">
+    <div class="row">
+      <button class="btn secondary" id="modal-cancel" style="flex:1;">Cancelar</button>
+      <button class="btn" id="modal-ok" style="flex:1;margin-top:0;">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- CONFIGURACIÓN DE FIREBASE ----------
+// Pega aquí los datos de tu proyecto (Consola de Firebase > Configuración del proyecto > Tus apps > Web).
+// Estos datos no son secretos: identifican el proyecto, no dan acceso por sí mismos.
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAPawMERUlZ_55vl2SfwCOt7dTRHwsh5bI",
+  authDomain: "panel-arbitral.firebaseapp.com",
+  projectId: "panel-arbitral",
+  storageBucket: "panel-arbitral.firebasestorage.app",
+  messagingSenderId: "91207386454",
+  appId: "1:91207386454:web:8be8e05052a586e823c2f7"
+};
+
+const CRITERIOS_VERSION = 'v2-gl';
+const DEFAULT_PIN_ADMIN = '9999';
+const NA_COLOR_DEFAULT = {9:'Verde',7:'Amarelo',5:'Laranxa',3:'Vermello'};
+
+const DEFAULT_GRUPOS = [
+  { nombre:'Aspectos xerais e técnica individual do arbitraxe (IOT)', items:[
+    'Aspecto persoal','Condición física','Sinalización','Mecánica de cola','Mecánica de cabeza','Transicións'
+  ]},
+  { nombre:'Criterio e control do partido', items:[
+    'Consistencia','Criterio de faltas','Criterio de violacións',
+    {label:'Comunicación cos participantes e protocolo de avisos e sancións', permiteNA:true},
+    'Xestión da presión'
+  ]},
+  { nombre:'Valoración global', items:[
+    'Actitude','Coñecemento das regras do xogo','Capacidade de autocrítica',
+    {label:'Dificultade do partido', incluirMedia:false, opciones:[{valor:9,etiqueta:'Moi alta'},{valor:7,etiqueta:'Alta'},{valor:5,etiqueta:'Normal'},{valor:3,etiqueta:'Fácil'}]}
+  ]}
+];
+
+const OPCIONES_ESTANDAR = [{valor:9,etiqueta:'Verde'},{valor:7,etiqueta:'Amarelo'},{valor:5,etiqueta:'Laranxa'},{valor:3,etiqueta:'Vermello'}];
+const OPCIONES_SINO = [{valor:9,etiqueta:'Si'},{valor:3,etiqueta:'Non'}];
+
+const FUNCIONES_OFICIAL = [
+  {key:'acta', label:'Acta'},
+  {key:'reloj_partido', label:'Reloxo de partido'},
+  {key:'reloj_lanzamiento', label:'Reloxo de lanzamento'},
+  {key:'acta24_manual', label:'Acta e 24" (manual)'},
+  {key:'acta24_visible', label:'Acta e 24" (visible)'}
+];
+
+const DEFAULT_GRUPOS_OFICIAL = [
+  { nombre:'Aspectos xerais iniciais', funciones:[], items:[
+    'Puntualidade','Uniformidade','Púxose en contacto co árbitro principal'
+  ]},
+  { nombre:'Función Acta', funciones:['acta','acta24_manual','acta24_visible'], items:[
+    'Pregunta dúbidas antes de iniciar','Ensina xogadores ao adestrador antes de asinar',
+    'Comunica ao adestrador: revisa e comproba antes de asinar','Anotación puntos','Anotación faltas',
+    'Anotación outras faltas','Anotación TM','Cambio de cuarto','Sabe cambiar cores / campos',
+    'Coñece que hai dentro de: outras funcións','Sabe buscar a acta do partido',
+    'Finaliza despois de ensinar a acta ao árbitro'
+  ]},
+  { nombre:'Función reloxo de partido', funciones:['reloj_partido'], items:[
+    'Pregunta dúbidas antes de iniciar','Comproba aparello antes do inicio de partido',
+    'Coñecemento de manexo do aparello','Marcha de maneira correcta','Stop de maneira correcta',
+    'Substitucións','Tempos mortos','Adiántase a posibles situacións de TM',
+    'Coñece a regra do saque rápido','Realiza correctamente cambios tras saque rápido',
+    'Realiza correctamente TM tras saque rápido'
+  ]},
+  { nombre:'Función reloxo de lanzamento', funciones:['reloj_lanzamiento','acta24_manual','acta24_visible'], items:[
+    'Pregunta dúbidas antes de iniciar','Comproba aparello antes do inicio de partido',
+    'Coñecemento do manexo do aparello','Marcha de maneira correcta','Stop de maneira correcta',
+    'Roubos','Control de balón','Loita','Aro + 14','Aro + 24','Marcha tras TL fallado',
+    'Falta en traseira','Falta en dianteira','Violación en traseira','Violación en dianteira'
+  ]},
+  { nombre:'Tras partido, aspectos xerais', funciones:[], items:[
+    'Coñecemento do Regulamento FIBA','Coñecemento de Interpretacións','Sabe a que árbitro observar no partido',
+    'Canta a súa función','Canta todo o partido','Traballo en equipo','Concentración','Actitude','Uso de móbil'
+  ]},
+  { nombre:'Ítems só para formadores (non contan na media)', funciones:[], soloFormadores:true, items:[
+    {label:'Pode facer 24 / acta visual', tipo:'opciones', opciones:OPCIONES_SINO},
+    {label:'Válido para ir só', tipo:'opciones', opciones:OPCIONES_SINO},
+    {label:'Precisa ir acompañado de FEB', tipo:'opciones', opciones:OPCIONES_SINO},
+    {label:'Fortalezas', tipo:'texto'},
+    {label:'Debilidades', tipo:'texto'}
+  ]}
+];
+function seedCriteriosOficial(){
+  const list = [];
+  DEFAULT_GRUPOS_OFICIAL.forEach(g=>{
+    g.items.forEach(it=>{
+      if(typeof it === 'string'){
+        list.push({id:uid(), label:it, grupo:g.nombre, permiteNA:false, incluirMedia:true, colectivo:'oficial',
+          tipo:'opciones', funciones:g.funciones||[], soloFormadores:!!g.soloFormadores, peso:1, textoEnBoton:false, opciones: OPCIONES_ESTANDAR.map(o=>({...o}))});
+      } else {
+        list.push({id:uid(), label:it.label, grupo:g.nombre, permiteNA:!!it.permiteNA,
+          incluirMedia: g.soloFormadores ? false : (it.incluirMedia!==false), colectivo:'oficial',
+          tipo: it.tipo||'opciones', funciones:g.funciones||[], soloFormadores:!!g.soloFormadores, peso:1, textoEnBoton:false,
+          opciones: it.tipo==='texto' ? [] : (it.opciones || OPCIONES_ESTANDAR).map(o=>({...o}))});
+      }
+    });
+  });
+  return list;
+}
+function mergeDefaultsOficial(){
+  const defaults = seedCriteriosOficial();
+  const existentes = new Set(state.criterios.filter(c=>c.colectivo==='oficial').map(c=>c.grupo+'||'+c.label));
+  const faltan = defaults.filter(d=>!existentes.has(d.grupo+'||'+d.label));
+  if(faltan.length) state.criterios = state.criterios.concat(faltan);
+  return faltan.length;
+}
+
+const DEFAULT_CATS_PARTIDO = [
+  {nombre:'2ª mini', sinGenero:false},
+  {nombre:'1ª mini', sinGenero:false},
+  {nombre:'2ª infantil', sinGenero:false},
+  {nombre:'1ª infantil', sinGenero:false},
+  {nombre:'2ª cadete', sinGenero:false},
+  {nombre:'1ª cadete', sinGenero:false},
+  {nombre:'2ª junior', sinGenero:false},
+  {nombre:'1ª junior', sinGenero:false},
+  {nombre:'3ª senior mas', sinGenero:true},
+  {nombre:'2ª senior fem', sinGenero:true},
+  {nombre:'1ª aut fem', sinGenero:true}
+];
+function seedCategoriasPartido(){ return DEFAULT_CATS_PARTIDO.map(c=>({id:uid(), ...c})); }
+
+let state = { referees: [], formadores: [], criterios: [], evaluations: [], categoriasPartido: [], formaciones: [], tests: [], grupoOrden: {arbitro:[], oficial:[]} };
+let seleccion = {};
+let generoSeleccionado = null;
+let pronosticoSeleccionado = null;
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function todayStr(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function fmtDate(s){ if(!s) return '—'; const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`; }
+function calcEdad(fechaNac){
+  if(!fechaNac) return null;
+  const hoy = new Date(); const nac = new Date(fechaNac+'T00:00:00');
+  let edad = hoy.getFullYear()-nac.getFullYear();
+  const m = hoy.getMonth()-nac.getMonth();
+  if(m<0 || (m===0 && hoy.getDate()<nac.getDate())) edad--;
+  return edad;
+}
+function temporadaInicio(d){ const y=d.getFullYear(), m=d.getMonth()+1; return m>=9 ? y : y-1; }
+function calcTemporadas(fechaAlta){
+  if(!fechaAlta) return null;
+  const hoy = new Date(); const alta = new Date(fechaAlta+'T00:00:00');
+  if(alta>hoy) return 0;
+  return Math.max(temporadaInicio(hoy)-temporadaInicio(alta)+1, 1);
+}
+function datosPerfil(r){
+  const partes = [];
+  const edad = calcEdad(r.fechaNacimiento);
+  const temp = calcTemporadas(r.fechaAlta);
+  if(edad!==null) partes.push(`${edad} años`);
+  if(temp!==null) partes.push(`${temp} temporada${temp===1?'':'s'} activo`);
+  return partes.join(' · ');
+}
+function asistenciaStats(refId){
+  const ref = state.referees.find(r=>r.id===refId);
+  const col = ref ? ref.colectivo : 'arbitro';
+  const formacionesCol = state.formaciones.filter(f=>f.colectivo===col);
+  const total = formacionesCol.length;
+  const asistidas = formacionesCol.filter(f=>f.estados[refId]==='si').length;
+  const justificadas = formacionesCol.filter(f=>f.estados[refId]==='justificada').length;
+  return { asistidas, total, justificadas };
+}
+function asistenciaTexto(asis){
+  let txt = `${asis.asistidas}/${asis.total} formaciones`;
+  if(asis.justificadas) txt += ` (${asis.justificadas} ausencia${asis.justificadas===1?'':'s'} justificada${asis.justificadas===1?'':'s'})`;
+  return txt;
+}
+function procesarFotoArchivo(file){
+  return new Promise((resolve,reject)=>{
+    if(!file.type || !file.type.startsWith('image/')){ reject(new Error('Selecciona un archivo de imagen')); return; }
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const size = 240;
+        const minSide = Math.min(img.width, img.height);
+        const sx = (img.width-minSide)/2, sy = (img.height-minSide)/2;
+        const canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+        resolve(canvas.toDataURL('image/jpeg', 0.72));
+      };
+      img.onerror = ()=>reject(new Error('No se pudo leer la imagen'));
+      img.src = e.target.result;
+    };
+    reader.onerror = ()=>reject(new Error('No se pudo leer el archivo'));
+    reader.readAsDataURL(file);
+  });
+}
+function carnetFotoHtml(r){
+  return r.foto
+    ? `<img class="carnet-foto" src="${r.foto}" alt="Foto de ${esc(r.nombre)}">`
+    : `<div class="carnet-foto-placeholder">${(r.nombre||'?').trim().charAt(0).toUpperCase()}</div>`;
+}
+async function subirFotoPersona(refId, file, onDone){
+  try{
+    const dataUrl = await procesarFotoArchivo(file);
+    const ref = state.referees.find(r=>r.id===refId);
+    ref.foto = dataUrl;
+    await saveReferees();
+    toast('Foto actualizada');
+    if(onDone) onDone();
+  }catch(e){
+    toast('No se pudo actualizar la foto: '+(e&&e.message?e.message:'inténtalo de nuevo'));
+  }
+}
+function esc(s){ return String(s).replace(/"/g,'&quot;'); }
+function genUniqueCode(list, field){ let c; do{ c = String(Math.floor(1000+Math.random()*9000)); }while(list.some(it=>it[field]===c)); return c; }
+function genCode(){ return genUniqueCode(state.referees, 'codigo'); }
+function genPin(){ return genUniqueCode(state.formadores, 'pin'); }
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// Sustituto propio de confirm()/prompt(): los diálogos nativos del navegador
+// pueden quedar bloqueados dentro del entorno donde se ejecuta este artefacto.
+let modalResolve = null;
+function closeModal(){ document.getElementById('modal-overlay').classList.add('hidden'); }
+function showConfirm(msg, okLabel){
+  document.getElementById('modal-message').textContent = msg;
+  document.getElementById('modal-input').classList.add('hidden');
+  document.getElementById('modal-ok').textContent = okLabel || 'Eliminar';
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  return new Promise(resolve=>{ modalResolve = resolve; });
+}
+function showPrompt(msg, defVal){
+  document.getElementById('modal-message').textContent = msg;
+  const inp = document.getElementById('modal-input');
+  inp.classList.remove('hidden');
+  inp.value = defVal || '';
+  document.getElementById('modal-ok').textContent = 'Aceptar';
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  setTimeout(()=>inp.focus(), 50);
+  return new Promise(resolve=>{ modalResolve = resolve; });
+}
+document.getElementById('modal-cancel').addEventListener('click', ()=>{
+  const isPrompt = !document.getElementById('modal-input').classList.contains('hidden');
+  closeModal();
+  if(modalResolve) modalResolve(isPrompt ? null : false);
+});
+document.getElementById('modal-ok').addEventListener('click', ()=>{
+  const inp = document.getElementById('modal-input');
+  const isPrompt = !inp.classList.contains('hidden');
+  const val = inp.value;
+  closeModal();
+  if(modalResolve) modalResolve(isPrompt ? val : true);
+});
+document.getElementById('modal-input').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('modal-ok').click(); });
+
+// Bandas: verde 7.5-9.0 · amarillo 6.0-7.4 · naranja 4.5-5.9 · rojo 3.0-4.4
+function colorForAvg(avg){
+  if(avg>=7.5) return 'v9';
+  if(avg>=6) return 'v7';
+  if(avg>=4.5) return 'v5';
+  return 'v3';
+}
+function bandWord(avg){
+  if(avg>=7.5) return 'Bueno';
+  if(avg>=6) return 'Correcto';
+  if(avg>=4.5) return 'Regular';
+  return 'Malo';
+}
+function avgBadgeBig(avg){
+  const soloAdmin = session.role==='admin';
+  if(avg===null || avg===undefined){
+    return `<div class="ref-avg" style="background:var(--panel-2);color:var(--text-dim);${soloAdmin?'':'font-size:12px;'}">${soloAdmin?'—':'Sen datos'}</div>`;
+  }
+  return soloAdmin
+    ? `<div class="ref-avg ${colorForAvg(avg)}">${avg.toFixed(1)}</div>`
+    : `<div class="ref-avg ${colorForAvg(avg)}" style="font-size:14px;">${bandWord(avg)}</div>`;
+}
+function avgBadgeSmall(avg){
+  const soloAdmin = session.role==='admin';
+  if(avg===null || avg===undefined){
+    return soloAdmin ? `<span class="chip gray">—</span>` : `<span class="word-chip gray">Sen nota</span>`;
+  }
+  return soloAdmin
+    ? `<span class="chip ${colorForAvg(avg)}">${avg.toFixed(1)}</span>`
+    : `<span class="word-chip ${colorForAvg(avg)}">${bandWord(avg)}</span>`;
+}
+function seedCriterios(){
+  const list = [];
+  DEFAULT_GRUPOS.forEach(g=>{
+    g.items.forEach(it=>{
+      if(typeof it === 'string'){
+        list.push({id:uid(), label:it, grupo:g.nombre, permiteNA:false, incluirMedia:true, colectivo:'arbitro', tipo:'opciones', funciones:[], peso:1, textoEnBoton:false, opciones: OPCIONES_ESTANDAR.map(o=>({...o}))});
+      } else {
+        list.push({id:uid(), label:it.label, grupo:g.nombre, permiteNA:!!it.permiteNA,
+          incluirMedia: it.incluirMedia!==false, colectivo:'arbitro', tipo:'opciones', funciones:[], peso:1, textoEnBoton:false,
+          opciones: (it.opciones || OPCIONES_ESTANDAR).map(o=>({...o}))});
+      }
+    });
+  });
+  return list;
+}
+function migrarCriterio(x){
+  const item = {permiteNA:false, incluirMedia:true, colectivo:'arbitro', tipo:'opciones', funciones:[], soloFormadores:false, peso:1, textoEnBoton:false, ...x};
+  if(!item.peso || item.peso<=0) item.peso = 1;
+  if(item.tipo!=='texto' && (!item.opciones || !item.opciones.length)){
+    const labels = item.colorLabels || {9:'Verde',7:'Amarelo',5:'Laranxa',3:'Vermello'};
+    item.opciones = [9,7,5,3].map(v=>({valor:v, etiqueta:labels[v]}));
+  }
+  delete item.colorLabels;
+  return item;
+}
+
+// ---------- ALMACENAMIENTO (Firebase Firestore, compartido) ----------
+// Estructura en Firestore:
+//   config/general     -> un campo por bloque (criterios, formadores, categorías,
+//                         formaciones, tests, orden de grupos), cada uno como texto JSON
+//   config/referees    -> items: {id: JSON del árbitro/oficial SIN foto}, orden: [ids]
+//   config/seguridad   -> pinAdmin
+//   fotos/{id}         -> foto: imagen de carnet (una por persona)
+//   evaluaciones/{id}  -> items: {idInforme: JSON del informe} (un documento por persona evaluada)
+// Solo se escribe lo que ha cambiado respecto a lo último leído o guardado, así
+// dos técnicos guardando a la vez no se pisan los informes y se gasta poca cuota.
+
+let fbResolve, fbReject;
+const fbReady = new Promise((res,rej)=>{ fbResolve=res; fbReject=rej; });
+fbReady.catch(()=>{});
+window.__fbInit = (api)=>fbResolve(api);
+window.__fbFail = (err)=>fbReject(err);
+setTimeout(()=>fbReject(new Error('No se pudo cargar Firebase (revisa tu conexión a internet)')), 20000);
+
+const DEL = {__borrarCampo:true};
+const sync = { general:{}, refs:{}, refsOrden:'[]', fotos:{}, evals:{} };
+
+function docId(x){ return String(x||'sin-asignar').replace(/\//g,'_'); }
+function parseOr(s, def){ try{ return (typeof s==='string' && s) ? JSON.parse(s) : def; }catch(e){ return def; } }
+function conTimeout(p, ms, msg){
+  let h; return Promise.race([p, new Promise((_,rej)=>{ h=setTimeout(()=>rej(new Error(msg)), ms); })]).finally(()=>clearTimeout(h));
+}
+function errorAmigable(e){
+  const code = String((e && e.code) || '');
+  if(code.includes('resource-exhausted')) return new Error('Se alcanzó el límite diario gratuito de Firebase. Inténtalo de nuevo a partir de las 9:00');
+  if(code.includes('permission-denied')) return new Error('Firebase rechazó la operación (revisa las reglas de seguridad)');
+  if(code.includes('unavailable')) return new Error('Sin conexión con el servidor');
+  return e instanceof Error ? e : new Error(String(e));
+}
+async function leerDoc(col, id){
+  const f = await fbReady;
+  try{
+    const s = await conTimeout(f.getDoc(f.doc(f.db, col, id)), 20000, 'Sin conexión con el servidor');
+    return s.exists() ? s.data() : null;
+  }catch(e){ throw errorAmigable(e); }
+}
+async function leerColeccion(col){
+  const f = await fbReady;
+  try{
+    const q = await conTimeout(f.getDocs(f.collection(f.db, col)), 30000, 'Sin conexión con el servidor');
+    const out = []; q.forEach(d=>out.push({id:d.id, data:d.data()}));
+    return out;
+  }catch(e){ throw errorAmigable(e); }
+}
+// ops: {col, id, data} -> set con merge (DEL borra ese campo) · {col, id, borrar:true} -> borra el documento
+async function escribir(ops){
+  if(!ops.length) return;
+  const f = await fbReady;
+  const conv = v => {
+    if(v===DEL) return f.deleteField();
+    if(v && typeof v==='object' && !Array.isArray(v)){ const o={}; Object.keys(v).forEach(k=>{ o[k]=conv(v[k]); }); return o; }
+    return v;
+  };
+  try{
+    for(let i=0; i<ops.length; i+=200){
+      const b = f.writeBatch(f.db);
+      ops.slice(i,i+200).forEach(op=>{
+        const ref = f.doc(f.db, op.col, op.id);
+        if(op.borrar) b.delete(ref); else b.set(ref, conv(op.data), {merge:true});
+      });
+      await conTimeout(b.commit(), 30000, 'No se pudo confirmar el guardado (revisa tu conexión e inténtalo de nuevo)');
+    }
+  }catch(e){ throw errorAmigable(e); }
+}
+
+// ---- Lectura ----
+async function cargarGeneral(){
+  const g = await leerDoc('config','general') || {};
+  sync.general = {};
+  Object.keys(g).forEach(k=>{ if(typeof g[k]==='string') sync.general[k] = g[k]; });
+  return g;
+}
+async function cargarReferees(){
+  const d = await leerDoc('config','referees') || {};
+  const items = d.items || {};
+  const orden = Array.isArray(d.orden) ? d.orden : [];
+  const fotosPrevias = {};
+  state.referees.forEach(r=>{ if(r.foto) fotosPrevias[r.id] = r.foto; });
+  sync.refs = {};
+  const lista = [];
+  Object.keys(items).forEach(id=>{
+    const r = parseOr(items[id], null);
+    if(!r) return;
+    sync.refs[id] = items[id];
+    if(fotosPrevias[id]) r.foto = fotosPrevias[id];
+    lista.push(r);
+  });
+  const pos = {}; orden.forEach((id,i)=>{ pos[id]=i; });
+  lista.sort((a,b)=>((pos[a.id]??1e9)-(pos[b.id]??1e9)) || String(a.nombre||'').localeCompare(String(b.nombre||''),'es'));
+  state.referees = lista;
+  sync.refsOrden = JSON.stringify(orden);
+}
+// Sin refId: todos los informes (técnicos y administración). Con refId: solo los de esa persona.
+async function cargarEvaluaciones(refId){
+  const docs = refId ? [{id:docId(refId), data: await leerDoc('evaluaciones', docId(refId))}] : await leerColeccion('evaluaciones');
+  const lista = []; const nuevoSync = {};
+  docs.forEach(({id,data})=>{
+    const items = (data && data.items) || {};
+    Object.keys(items).forEach(eid=>{
+      const e = parseOr(items[eid], null);
+      if(e){ nuevoSync[eid] = {ref:id, s:items[eid]}; lista.push(e); }
+    });
+  });
+  lista.sort((a,b)=>String(a.fecha||'').localeCompare(String(b.fecha||'')));
+  sync.evals = nuevoSync;
+  state.evaluations = lista;
+}
+async function cargarFotos(refId){
+  const docs = refId ? [{id:docId(refId), data: await leerDoc('fotos', docId(refId))}] : await leerColeccion('fotos');
+  if(!refId){ sync.fotos = {}; state.referees.forEach(r=>{ sync.fotos[r.id] = ''; delete r.foto; }); }
+  else { sync.fotos[refId] = ''; const r = state.referees.find(x=>x.id===refId); if(r) delete r.foto; }
+  docs.forEach(({id,data})=>{
+    const foto = (data && data.foto) || '';
+    sync.fotos[id] = foto;
+    const r = state.referees.find(x=>x.id===id);
+    if(r){ if(foto) r.foto = foto; else delete r.foto; }
+  });
+}
+async function cargarDatosSesion(refId){
+  await cargarEvaluaciones(refId);
+  await cargarFotos(refId);
+}
+
+async function loadAll(){
+  // Si la lectura falla, se lanza el error y NO se guarda nada (para no pisar datos reales).
+  const g = await cargarGeneral();
+  const crit = parseOr(g.criterios, null);
+  state.criterios = (crit && crit.length ? crit : seedCriterios().concat(seedCriteriosOficial())).map(migrarCriterio);
+  state.formadores = parseOr(g.formadores, []);
+  const cp = parseOr(g.categoriasPartido, null);
+  state.categoriasPartido = (cp && cp.length) ? cp : seedCategoriasPartido();
+  state.formaciones = parseOr(g.formaciones, []);
+  state.tests = parseOr(g.tests, []);
+  state.grupoOrden = { arbitro: parseOr(g.grupoOrdenArbitro, []), oficial: parseOr(g.grupoOrdenOficial, []) };
+  await cargarReferees();
+  state.evaluations = [];
+  sync.evals = {};
+  await migrarTodoYGuardar();
+}
+
+async function getAdminPin(){
+  const d = await leerDoc('config','seguridad');
+  return (d && d.pinAdmin) ? d.pinAdmin : DEFAULT_PIN_ADMIN;
+}
+async function setAdminPin(v){
+  await escribir([{col:'config', id:'seguridad', data:{pinAdmin:v}}]);
+}
+
+async function migrarTodoYGuardar(){
+  // Criterios: garantiza que cada ítem tenga la forma correcta (opciones/tipo/funciones/peso).
+  // Nunca se añade nada de oficiales aquí en automático: ni al cargar ni al restaurar una copia,
+  // para no pisar borrados ni ediciones del administrador. Para rellenar ítems que falten a
+  // propósito está el botón manual "Restaurar ítems predeterminados que falten" en Ajustes.
+  state.criterios = (state.criterios||[]).map(migrarCriterio);
+
+  // Referees: código y colectivo por defecto
+  state.referees = state.referees || [];
+  state.referees.forEach(r=>{
+    if(!r.codigo){ r.codigo = genCode(); }
+    if(!r.colectivo){ r.colectivo = 'arbitro'; }
+  });
+
+  // Formadores: PIN y colectivo por defecto
+  state.formadores = state.formadores || [];
+  state.formadores.forEach(f=>{
+    if(!f.pin){ f.pin = genPin(); }
+    if(!f.colectivo){ f.colectivo = 'arbitro'; }
+  });
+
+  // Evaluaciones: colectivo por defecto
+  state.evaluations = state.evaluations || [];
+  state.evaluations.forEach(e=>{
+    if(!e.colectivo){
+      const ref = state.referees.find(r=>r.id===e.arbitroId);
+      e.colectivo = ref ? ref.colectivo : 'arbitro';
+    }
+  });
+
+  // Categorías de partido: sembrar si faltan
+  if(!state.categoriasPartido || !state.categoriasPartido.length){
+    state.categoriasPartido = seedCategoriasPartido();
+  }
+
+  // Formaciones: colectivo por defecto y migración asistentes[] -> estados{}
+  state.formaciones = state.formaciones || [];
+  state.formaciones.forEach(f=>{
+    if(!f.colectivo){ f.colectivo = 'arbitro'; }
+    if(!f.estados){
+      f.estados = {};
+      (f.asistentes||[]).forEach(id=>{ f.estados[id] = 'si'; });
+      delete f.asistentes;
+    }
+  });
+
+  state.tests = state.tests || [];
+  state.grupoOrden = state.grupoOrden || {arbitro:[], oficial:[]};
+  state.grupoOrden.arbitro = state.grupoOrden.arbitro || [];
+  state.grupoOrden.oficial = state.grupoOrden.oficial || [];
+
+  const bloques = [
+    {clave:'criterios', nombre:'ítems del cuestionario', valor:()=>state.criterios, guardar:saveCriterios},
+    {clave:'referees', nombre:'árbitros y oficiales', valor:()=>state.referees, guardar:saveReferees},
+    {clave:'formadores', nombre:'formadores', valor:()=>state.formadores, guardar:saveFormadores},
+    {clave:'evaluations', nombre:'informes/evaluaciones', valor:()=>state.evaluations, guardar:saveEvaluations},
+    {clave:'categoriasPartido', nombre:'categorías de partido', valor:()=>state.categoriasPartido, guardar:saveCategoriasPartido},
+    {clave:'formaciones', nombre:'formaciones y asistencia', valor:()=>state.formaciones, guardar:saveFormaciones},
+    {clave:'tests', nombre:'tests de reglas', valor:()=>state.tests, guardar:saveTests},
+    {clave:'grupoOrden-arbitro', nombre:'orden de grupos (árbitros)', valor:()=>state.grupoOrden.arbitro, guardar:()=>guardarOrdenGrupos('arbitro', state.grupoOrden.arbitro)},
+    {clave:'grupoOrden-oficial', nombre:'orden de grupos (oficiais)', valor:()=>state.grupoOrden.oficial, guardar:()=>guardarOrdenGrupos('oficial', state.grupoOrden.oficial)}
+  ];
+  const resultados = [];
+  for(const b of bloques){
+    const tamanoKB = Math.round(JSON.stringify(b.valor()).length/1024);
+    try{
+      await b.guardar();
+      resultados.push({...b, ok:true, tamanoKB});
+    }catch(e){
+      resultados.push({...b, ok:false, tamanoKB, error: (e&&e.message)?e.message:String(e)});
+    }
+  }
+  return resultados;
+}
+
+// ---- Escritura (solo cambios) ----
+async function guardarGeneral(campos){
+  const data = {};
+  Object.keys(campos).forEach(k=>{ const s = JSON.stringify(campos[k]); if(sync.general[k]!==s) data[k] = s; });
+  if(!Object.keys(data).length) return;
+  await escribir([{col:'config', id:'general', data}]);
+  Object.assign(sync.general, data);
+}
+async function saveCriterios(){ await guardarGeneral({criterios: state.criterios}); }
+async function saveFormadores(){ await guardarGeneral({formadores: state.formadores}); }
+async function saveCategoriasPartido(){ await guardarGeneral({categoriasPartido: state.categoriasPartido}); }
+async function saveFormaciones(){ await guardarGeneral({formaciones: state.formaciones}); }
+async function saveTests(){ await guardarGeneral({tests: state.tests}); }
+async function guardarOrdenGrupos(colectivo, nuevoOrdenNombres){
+  state.grupoOrden[colectivo] = nuevoOrdenNombres;
+  await guardarGeneral({[colectivo==='oficial' ? 'grupoOrdenOficial' : 'grupoOrdenArbitro']: nuevoOrdenNombres});
+}
+
+async function saveReferees(){
+  const actuales = {}, cambios = {}, fotosCambio = {};
+  state.referees.forEach(r=>{
+    const {foto, ...resto} = r;
+    const s = JSON.stringify(resto);
+    actuales[r.id] = s;
+    if(sync.refs[r.id]!==s) cambios[r.id] = s;
+    const f = foto || '';
+    if(r.id in sync.fotos){ if(sync.fotos[r.id]!==f) fotosCambio[r.id] = f; }
+    else if(f){ fotosCambio[r.id] = f; }
+  });
+  Object.keys(sync.refs).forEach(id=>{ if(!(id in actuales)) cambios[id] = DEL; });
+  Object.keys(sync.fotos).forEach(id=>{ if(!(id in actuales) && sync.fotos[id]) fotosCambio[id] = ''; });
+  const ordenIds = state.referees.map(r=>r.id);
+  const orden = JSON.stringify(ordenIds);
+  const data = {};
+  if(Object.keys(cambios).length) data.items = cambios;
+  if(orden!==sync.refsOrden) data.orden = ordenIds;
+  const ops = [];
+  if(Object.keys(data).length) ops.push({col:'config', id:'referees', data});
+  Object.keys(fotosCambio).forEach(id=>{
+    ops.push(fotosCambio[id] ? {col:'fotos', id:docId(id), data:{foto:fotosCambio[id]}} : {col:'fotos', id:docId(id), borrar:true});
+  });
+  await escribir(ops);
+  Object.keys(cambios).forEach(id=>{ if(cambios[id]===DEL) delete sync.refs[id]; else sync.refs[id] = cambios[id]; });
+  sync.refsOrden = orden;
+  Object.keys(fotosCambio).forEach(id=>{ if(id in actuales) sync.fotos[id] = fotosCambio[id]; else delete sync.fotos[id]; });
+}
+
+async function saveEvaluations(){
+  const actuales = {};
+  state.evaluations.forEach(e=>{ actuales[e.id] = {ref:docId(e.arbitroId), s:JSON.stringify(e)}; });
+  const porDoc = {};
+  const poner = (ref,id,v)=>{ (porDoc[ref] = porDoc[ref] || {})[id] = v; };
+  Object.keys(actuales).forEach(id=>{
+    const a = actuales[id], p = sync.evals[id];
+    if(!p || p.s!==a.s || p.ref!==a.ref){
+      poner(a.ref, id, a.s);
+      if(p && p.ref!==a.ref) poner(p.ref, id, DEL);
+    }
+  });
+  Object.keys(sync.evals).forEach(id=>{ if(!(id in actuales)) poner(sync.evals[id].ref, id, DEL); });
+  await escribir(Object.keys(porDoc).map(ref=>({col:'evaluaciones', id:ref, data:{items:porDoc[ref]}})));
+  sync.evals = actuales;
+}
+async function guardarUnaEvaluacion(item){
+  // Solo se escribe este informe (un campo dentro del documento de esa persona).
+  const ref = docId(item.arbitroId), s = JSON.stringify(item);
+  await escribir([{col:'evaluaciones', id:ref, data:{items:{[item.id]: s}}}]);
+  sync.evals[item.id] = {ref, s};
+  if(!state.evaluations.some(e=>e.id===item.id)) state.evaluations.push(item);
+}
+
+
+const COLECTIVO_LABEL = {arbitro:'Árbitro', oficial:'Oficial de mesa'};
+const COLECTIVO_LABEL_PL = {arbitro:'Árbitros', oficial:'Oficiales de mesa'};
+const CATS_POR_COLECTIVO = {arbitro:['A','B','C','D','Iniciación'], oficial:['1','2']};
+
+// ---------- LOGIN / SESIÓN ----------
+let session = { role:null, refId:null, colectivo:'arbitro' };
+
+function activarTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+  ['evaluar','informes','ajustes','vista','asistencia'].forEach(t=>{
+    document.getElementById('view-'+t).classList.toggle('hidden', t!==tab);
+  });
+  if(tab==='informes'){ showListado(); renderInformes(); }
+  if(tab==='ajustes'){ renderAjustes(); showListadoTests(); renderUmbralesWrap(); renderTests(); }
+  if(tab==='evaluar'){ renderEvaluarArbitros(); renderFormadoresSelect(); renderCategoriasPartidoSelect(); renderCriterios(); }
+  if(tab==='asistencia'){ showListadoAsistencia(); renderAsistencia(); }
+}
+
+function enterApp(){
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app-shell').classList.remove('hidden');
+  const nav = document.querySelector('header nav');
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.add('hidden'));
+
+  const wraps = ['ev-colectivo-wrap','inf-colectivo-wrap','af-colectivo-wrap'];
+  if(session.role==='admin'){
+    nav.classList.remove('hidden');
+    ['evaluar','informes','asistencia','ajustes'].forEach(t=>document.querySelector(`.tab-btn[data-tab="${t}"]`).classList.remove('hidden'));
+    wraps.forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.remove('hidden'); });
+    document.getElementById('ev-col-arbitro').classList.toggle('active', session.colectivo==='arbitro');
+    document.getElementById('ev-col-oficial').classList.toggle('active', session.colectivo==='oficial');
+    document.getElementById('btn-export-csv').classList.remove('hidden');
+    activarTab('evaluar');
+  } else if(session.role==='tecnico'){
+    nav.classList.remove('hidden');
+    ['evaluar','informes','asistencia'].forEach(t=>document.querySelector(`.tab-btn[data-tab="${t}"]`).classList.remove('hidden'));
+    wraps.forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.add('hidden'); });
+    activarTab('evaluar');
+  } else if(session.role==='arbitro'){
+    nav.classList.add('hidden');
+    ['evaluar','informes','ajustes','asistencia'].forEach(t=>document.getElementById('view-'+t).classList.add('hidden'));
+    document.getElementById('view-vista').classList.remove('hidden');
+    renderVistaDetalle(session.refId);
+  }
+}
+
+function salir(){
+  session = { role:null, refId:null, colectivo:'arbitro' };
+  document.getElementById('app-shell').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-arbitro-codigo').value='';
+  document.getElementById('login-tecnico-pin').value='';
+  document.getElementById('login-admin-pin').value='';
+}
+document.getElementById('btn-logout').addEventListener('click', salir);
+
+async function refrescarReferees(){
+  await cargarReferees();
+}
+async function refrescarFormadores(){
+  const g = await leerDoc('config','general');
+  if(g && typeof g.formadores==='string'){ state.formadores = parseOr(g.formadores, []); sync.general.formadores = g.formadores; }
+}
+
+// Evita dobles clics mientras se comprueba el acceso y se cargan los datos.
+let entrando = false;
+async function intentarEntrar(fn){
+  if(entrando) return;
+  entrando = true;
+  try{
+    await cargaInicial;
+    await fn();
+  }catch(e){
+    toast('No se pudo entrar: '+(e&&e.message?e.message:'error de conexión'));
+  }finally{ entrando = false; }
+}
+
+document.getElementById('login-arbitro-btn').addEventListener('click', ()=>intentarEntrar(async ()=>{
+  const code = document.getElementById('login-arbitro-codigo').value.trim();
+  if(!code){ toast('Introduce tu código'); return; }
+  await refrescarReferees();
+  const ref = state.referees.find(r=>r.codigo===code);
+  if(!ref){ toast('Código no válido'); return; }
+  await cargarDatosSesion(ref.id);
+  session = { role:'arbitro', refId:ref.id, colectivo: ref.colectivo||'arbitro' };
+  enterApp();
+}));
+document.getElementById('login-arbitro-codigo').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('login-arbitro-btn').click(); });
+
+document.getElementById('login-tecnico-btn').addEventListener('click', ()=>intentarEntrar(async ()=>{
+  const pin = document.getElementById('login-tecnico-pin').value.trim();
+  if(!pin){ toast('Introduce tu PIN'); return; }
+  await refrescarFormadores();
+  const f = state.formadores.find(x=>x.pin===pin);
+  if(!f){ toast('PIN no válido'); return; }
+  await refrescarReferees();
+  await cargarDatosSesion();
+  session = { role:'tecnico', refId:null, tecnicoId:f.id, colectivo: f.colectivo||'arbitro' };
+  enterApp();
+}));
+document.getElementById('login-tecnico-pin').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('login-tecnico-btn').click(); });
+
+document.getElementById('login-admin-btn').addEventListener('click', ()=>intentarEntrar(async ()=>{
+  const pin = document.getElementById('login-admin-pin').value.trim();
+  if(pin !== await getAdminPin()){ toast('PIN incorrecto'); return; }
+  await refrescarReferees();
+  await refrescarFormadores();
+  await cargarDatosSesion();
+  session = { role:'admin', refId:null, colectivo:'arbitro' };
+  enterApp();
+}));
+document.getElementById('login-admin-pin').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('login-admin-btn').click(); });
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=> activarTab(btn.dataset.tab));
+});
+
+// ---------- EVALUAR ----------
+function renderEvaluarArbitros(){
+  const sel = document.getElementById('ev-arbitro');
+  const prev = sel.value;
+  const lista = state.referees.filter(r=>r.colectivo===session.colectivo);
+  sel.innerHTML = lista.length
+    ? lista.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'})).map(r=>`<option value="${r.id}">${r.nombre} (Cat. ${r.categoria})</option>`).join('')
+    : `<option value="">Añade ${session.colectivo==='oficial'?'oficiales':'árbitros'} en Ajustes primero</option>`;
+  if(prev) sel.value = prev;
+  document.getElementById('ev-arbitro-label').textContent = COLECTIVO_LABEL[session.colectivo];
+  document.getElementById('ev-rol-oficial-wrap').classList.toggle('hidden', session.colectivo!=='oficial');
+  const funcSel = document.getElementById('ev-rol-oficial');
+  const funcPrev = funcSel.value;
+  funcSel.innerHTML = `<option value="">Selecciona función…</option>` +
+    FUNCIONES_OFICIAL.map(f=>`<option value="${f.key}">${f.label}</option>`).join('');
+  if(funcPrev) funcSel.value = funcPrev;
+}
+document.getElementById('ev-rol-oficial').addEventListener('change', renderCriterios);
+
+function renderFormadoresSelect(){
+  const sel = document.getElementById('ev-formador');
+  const prev = sel.value;
+  const lista = state.formadores.filter(f=>f.colectivo===session.colectivo);
+  sel.innerHTML = lista.length
+    ? lista.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'})).map(f=>`<option value="${f.id}">${f.nombre}</option>`).join('')
+    : `<option value="">Añade un formador con el botón +</option>`;
+  if(session.role==='tecnico' && session.tecnicoId){
+    sel.value = session.tecnicoId;
+    sel.disabled = true;
+    document.getElementById('ev-add-formador').classList.add('hidden');
+  } else {
+    if(prev) sel.value = prev;
+    sel.disabled = false;
+    document.getElementById('ev-add-formador').classList.remove('hidden');
+  }
+  actualizarPronosticoWrap();
+}
+
+document.getElementById('ev-col-arbitro').addEventListener('click', ()=>cambiarColectivoEvaluar('arbitro'));
+document.getElementById('ev-col-oficial').addEventListener('click', ()=>cambiarColectivoEvaluar('oficial'));
+function cambiarColectivoEvaluar(col){
+  session.colectivo = col;
+  document.getElementById('ev-col-arbitro').classList.toggle('active', col==='arbitro');
+  document.getElementById('ev-col-oficial').classList.toggle('active', col==='oficial');
+  renderEvaluarArbitros(); renderFormadoresSelect(); renderCriterios();
+}
+
+function actualizarPronosticoWrap(){
+  const f = state.formadores.find(x=>x.id===document.getElementById('ev-formador').value);
+  const wrap = document.getElementById('ev-pronostico-wrap');
+  if(f && f.puedePronostico){ wrap.classList.remove('hidden'); }
+  else { wrap.classList.add('hidden'); pronosticoSeleccionado = null; }
+  marcarPronostico();
+}
+function marcarPronostico(){
+  document.getElementById('ev-pron-ascender').classList.toggle('active', pronosticoSeleccionado==='ascender');
+  document.getElementById('ev-pron-mantener').classList.toggle('active', pronosticoSeleccionado==='mantener');
+  document.getElementById('ev-pron-descender').classList.toggle('active', pronosticoSeleccionado==='descender');
+}
+document.getElementById('ev-formador').addEventListener('change', actualizarPronosticoWrap);
+document.getElementById('ev-pron-ascender').addEventListener('click', ()=>{ pronosticoSeleccionado='ascender'; marcarPronostico(); });
+document.getElementById('ev-pron-mantener').addEventListener('click', ()=>{ pronosticoSeleccionado='mantener'; marcarPronostico(); });
+document.getElementById('ev-pron-descender').addEventListener('click', ()=>{ pronosticoSeleccionado='descender'; marcarPronostico(); });
+
+document.getElementById('ev-add-formador').addEventListener('click', async ()=>{
+  const nombre = await showPrompt('Nombre del formador/a:');
+  if(!nombre || !nombre.trim()) return;
+  const f = {id:uid(), nombre:nombre.trim(), pin:genPin(), colectivo:session.colectivo};
+  state.formadores.push(f);
+  await saveFormadores();
+  renderFormadoresSelect();
+  document.getElementById('ev-formador').value = f.id;
+  toast(`Formador añadido — su PIN es ${f.pin}`);
+});
+
+function renderCategoriasPartidoSelect(){
+  const sel = document.getElementById('ev-cat-partido');
+  const prev = sel.value;
+  sel.innerHTML = `<option value="">Selecciona categoría…</option>` +
+    state.categoriasPartido.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join('');
+  if(prev) sel.value = prev;
+  actualizarGeneroToggle();
+}
+
+function actualizarGeneroToggle(){
+  const cat = state.categoriasPartido.find(c=>c.id===document.getElementById('ev-cat-partido').value);
+  const wrap = document.getElementById('ev-genero-toggle');
+  if(!cat || cat.sinGenero){
+    wrap.classList.add('hidden');
+    generoSeleccionado = null;
+  } else {
+    wrap.classList.remove('hidden');
+  }
+  marcarGenero();
+}
+function marcarGenero(){
+  document.getElementById('ev-genero-m').classList.toggle('active', generoSeleccionado==='M');
+  document.getElementById('ev-genero-f').classList.toggle('active', generoSeleccionado==='F');
+}
+document.getElementById('ev-cat-partido').addEventListener('change', actualizarGeneroToggle);
+document.getElementById('ev-genero-m').addEventListener('click', ()=>{ generoSeleccionado='M'; marcarGenero(); });
+document.getElementById('ev-genero-f').addEventListener('click', ()=>{ generoSeleccionado='F'; marcarGenero(); });
+
+function criteriosDelColectivo(){
+  const base = state.criterios.filter(c=>(c.colectivo||'arbitro')===session.colectivo);
+  if(session.colectivo!=='oficial') return base;
+  const funcion = document.getElementById('ev-rol-oficial').value;
+  return base.filter(c=>!c.funciones || !c.funciones.length || (funcion && c.funciones.includes(funcion)));
+}
+function agruparPorGrupo(lista, colectivo){
+  const grupos = []; const idx = {};
+  lista.forEach(c=>{
+    if(!(c.grupo in idx)){ idx[c.grupo] = grupos.length; grupos.push({grupo:c.grupo, items:[]}); }
+    grupos[idx[c.grupo]].items.push(c);
+  });
+  const orden = colectivo && state.grupoOrden[colectivo];
+  if(orden && orden.length){
+    grupos.sort((a,b)=>{
+      const ia = orden.indexOf(a.grupo), ib = orden.indexOf(b.grupo);
+      if(ia===-1 && ib===-1) return 0;
+      if(ia===-1) return 1;
+      if(ib===-1) return -1;
+      return ia-ib;
+    });
+  }
+  return grupos;
+}
+// Los informes ya publicados guardan sus ítems (scores) en el orden que tenían
+// en el momento de guardarse — no se actualiza solo cuando luego reordenas los
+// grupos/ítems en Ajustes. Esta función reordena SOLO para mostrar, usando el
+// orden actual de Ajustes, sin tocar los datos guardados del informe.
+function ordenIdealCriterios(colectivo){
+  const lista = state.criterios.filter(c=>(c.colectivo||'arbitro')===colectivo);
+  const orden = [];
+  agruparPorGrupo(lista, colectivo).forEach(g=>g.items.forEach(c=>orden.push(c.id)));
+  return orden;
+}
+function ordenarScoresComoAjustes(scores, colectivo){
+  const orden = ordenIdealCriterios(colectivo||'arbitro');
+  const pos = {};
+  orden.forEach((id,i)=>{ pos[id] = i; });
+  return scores.slice().sort((a,b)=>{
+    const pa = pos[a.criterioId], pb = pos[b.criterioId];
+    if(pa===undefined && pb===undefined) return 0;
+    if(pa===undefined) return 1;
+    if(pb===undefined) return -1;
+    return pa-pb;
+  });
+}
+function reordenarGrupo(colectivo, grupoNombre, nuevoOrdenIds){
+  const items = state.criterios.filter(c=>(c.colectivo||'arbitro')===colectivo);
+  const otrosColectivo = state.criterios.filter(c=>(c.colectivo||'arbitro')!==colectivo);
+  const mapPorId = {};
+  items.filter(c=>c.grupo===grupoNombre).forEach(c=>{ mapPorId[c.id]=c; });
+  const reordenados = nuevoOrdenIds.map(id=>mapPorId[id]).filter(Boolean);
+  const nuevaLista = [];
+  let insertado = false;
+  items.forEach(c=>{
+    if(c.grupo===grupoNombre){
+      if(!insertado){ nuevaLista.push(...reordenados); insertado = true; }
+    } else {
+      nuevaLista.push(c);
+    }
+  });
+  state.criterios = otrosColectivo.concat(nuevaLista);
+}
+function renderCriterios(){
+  seleccion = {};
+  const box = document.getElementById('ev-criterios');
+  if(session.colectivo==='oficial' && !document.getElementById('ev-rol-oficial').value){
+    box.innerHTML = `<div class="empty">Selecciona primeiro a función desempeñada para ver o cuestionario correspondente.</div>`;
+    document.getElementById('ev-guardar').disabled = true;
+    return;
+  }
+  const lista = criteriosDelColectivo();
+  if(!lista.length){
+    box.innerHTML = `<div class="empty">Aínda non hai ítems configurados para ${COLECTIVO_LABEL_PL[session.colectivo].toLowerCase()}. Pídelle ao administrador que os engada en Ajustes.</div>`;
+    document.getElementById('ev-guardar').disabled = true;
+    return;
+  }
+  document.getElementById('ev-guardar').disabled = false;
+  let html = '';
+  agruparPorGrupo(lista, session.colectivo).forEach(grupo=>{
+    html += `<h3 class="grupo-titulo">${grupo.grupo}</h3>`;
+    grupo.items.forEach(c=>{
+    if(c.tipo==='texto'){
+      html += `<div class="criterio-row" data-crit="${c.id}" data-tipo="texto">
+        <div class="criterio-label">${c.label}${c.incluirMedia===false?' <span class="meta">(non conta na media)</span>':''}</div>
+        <textarea data-texto-crit="${c.id}" placeholder="Escribe aquí..."></textarea>
+      </div>`;
+      seleccion[c.id] = {value:'', etiqueta:''};
+      return;
+    }
+    const ops = c.opciones.slice().sort((a,b)=>b.valor-a.valor);
+    const esEstandar = ops.length===4 && ops.every(o=>OPCIONES_ESTANDAR.some(so=>so.valor===o.valor && so.etiqueta===o.etiqueta));
+    const conTexto = !!c.textoEnBoton;
+    html += `<div class="criterio-row" data-crit="${c.id}" data-con-texto="${conTexto?'1':'0'}">
+      <div class="criterio-label">${c.label}${c.incluirMedia===false?' <span class="meta">(non conta na media)</span>':''}</div>
+      <div class="semaforo">
+        ${ops.map(o=>`<div class="luz ${colorForAvg(o.valor)}${conTexto?' con-texto':''}" data-val="${o.valor}" data-etq="${esc(o.etiqueta)}" title="${o.etiqueta}" aria-label="${o.etiqueta}">${conTexto?o.etiqueta:''}</div>`).join('')}
+        ${c.permiteNA?`<div class="luz na" data-val="NA" data-etq="N/A" title="Non aplica" aria-label="Non aplica">N/A</div>`:''}
+      </div>
+      ${(esEstandar||conTexto)?'':`<div class="caption-legend">${ops.map(o=>`<span class="cap-item"><span class="dot ${colorForAvg(o.valor)}"></span>${o.etiqueta}</span>`).join('')}</div>`}
+    </div>`;
+    });
+  });
+  box.innerHTML = html;
+  attachCriterioListeners();
+}
+
+function attachCriterioListeners(){
+  document.querySelectorAll('#ev-criterios .criterio-row').forEach(row=>{
+    const critId = row.dataset.crit;
+    const conTexto = row.dataset.conTexto === '1';
+    row.querySelectorAll('.luz').forEach(luz=>{
+      luz.addEventListener('click', ()=>{
+        row.querySelectorAll('.luz').forEach(l=>{
+          l.classList.remove('selected');
+          if(!l.classList.contains('na') && !conTexto) l.textContent='';
+        });
+        luz.classList.add('selected');
+        const val = luz.dataset.val;
+        seleccion[critId] = val === 'NA' ? {value:'NA', etiqueta:'N/A'} : {value:Number(val), etiqueta:luz.dataset.etq};
+        if(val !== 'NA' && !conTexto){ luz.textContent = '✓'; }
+      });
+    });
+  });
+  document.querySelectorAll('#ev-criterios [data-texto-crit]').forEach(area=>{
+    area.addEventListener('input', ()=>{
+      seleccion[area.dataset.textoCrit] = {value: area.value, etiqueta: area.value};
+    });
+  });
+}
+
+document.getElementById('ev-guardar').addEventListener('click', async ()=>{
+  const formadorId = document.getElementById('ev-formador').value;
+  const formador = state.formadores.find(f=>f.id===formadorId);
+  const arbitroId = document.getElementById('ev-arbitro').value;
+  const fecha = document.getElementById('ev-fecha').value || todayStr();
+  const partido = document.getElementById('ev-partido').value.trim();
+  const catPartidoId = document.getElementById('ev-cat-partido').value;
+  const catPartido = state.categoriasPartido.find(c=>c.id===catPartidoId);
+  const funcionOficial = document.getElementById('ev-rol-oficial').value;
+  const funcionLabel = FUNCIONES_OFICIAL.find(f=>f.key===funcionOficial);
+  const interna = document.getElementById('ev-interna').value.trim();
+  const feedback = document.getElementById('ev-feedback').value.trim();
+
+  if(!formador){ toast('Selecciona o añade un formador'); return; }
+  if(!arbitroId){ toast('Selecciona un árbitro'); return; }
+  if(!catPartido){ toast('Selecciona la categoría del partido'); return; }
+  if(!catPartido.sinGenero && !generoSeleccionado){ toast('Indica si el partido es masculino o femenino'); return; }
+  if(session.colectivo==='oficial' && !funcionOficial){ toast('Selecciona la función desempeñada'); return; }
+  const missing = criteriosDelColectivo().filter(c=>c.tipo!=='texto' && seleccion[c.id]===undefined);
+  if(missing.length){ toast('Faltan ítems por valorar: '+missing.length); return; }
+
+  const partidoCategoria = catPartido.sinGenero
+    ? catPartido.nombre
+    : `${catPartido.nombre} ${generoSeleccionado==='M'?'masculino':'femenino'}`;
+
+  const scores = criteriosDelColectivo().map(c=>({
+    criterioId:c.id, label:c.label, grupo:c.grupo, incluirMedia:c.incluirMedia!==false, tipo:c.tipo||'opciones',
+    soloFormadores:!!c.soloFormadores, peso:(c.peso&&c.peso>0)?c.peso:1, value:seleccion[c.id].value, etiqueta:seleccion[c.id].etiqueta
+  }));
+  const ponderables = scores.filter(s=>s.incluirMedia && typeof s.value==='number');
+  const sumaPesos = ponderables.reduce((s,x)=>s+x.peso,0);
+  const avg = sumaPesos ? ponderables.reduce((s,x)=>s+x.value*x.peso,0)/sumaPesos : null;
+
+  const pronostico = (formador.puedePronostico && pronosticoSeleccionado) ? pronosticoSeleccionado : null;
+
+  const ref = state.referees.find(r=>r.id===arbitroId);
+  const nuevaEvaluacion = {
+    id: uid(), arbitroId, arbitroNombre: ref?ref.nombre:'', categoria: ref?ref.categoria:'',
+    colectivo: session.colectivo,
+    formadorId, formador: formador.nombre, fecha, partido, partidoCategoria,
+    funcionOficial: session.colectivo==='oficial' ? funcionOficial : null,
+    rolOficial: session.colectivo==='oficial' && funcionLabel ? funcionLabel.label : null,
+    scores,
+    avg: avg!==null ? Math.round(avg*100)/100 : null, interna, feedback, pronostico
+  };
+
+  try{
+    await guardarUnaEvaluacion(nuevaEvaluacion);
+    toast('✓ Informe publicado con éxito');
+    document.getElementById('ev-partido').value='';
+    document.getElementById('ev-cat-partido').value='';
+    document.getElementById('ev-rol-oficial').value='';
+    generoSeleccionado = null;
+    actualizarGeneroToggle();
+    pronosticoSeleccionado = null;
+    marcarPronostico();
+    document.getElementById('ev-interna').value='';
+    document.getElementById('ev-feedback').value='';
+    renderCriterios();
+  }catch(e){ toast('No se pudo guardar: '+(e&&e.message?e.message:'motivo desconocido')+'. Inténtalo de nuevo.'); }
+});
+
+// ---------- INFORMES (vista técnico: cifras) ----------
+function refStats(refId){
+  const evs = state.evaluations.filter(e=>e.arbitroId===refId);
+  const conMedia = evs.filter(e=>e.avg!==null && e.avg!==undefined);
+  const avg = conMedia.length ? conMedia.reduce((s,e)=>s+e.avg,0)/conMedia.length : null;
+  const ultima = evs.length ? evs.map(e=>e.fecha).sort().slice(-1)[0] : null;
+  return { evs, avg, ultima, count: evs.length };
+}
+
+function statsForRefInCategory(refId, categoria){
+  const evs = state.evaluations.filter(e=>e.arbitroId===refId && (e.categoria||'—')===categoria);
+  const conMedia = evs.filter(e=>e.avg!==null);
+  const avg = conMedia.length ? conMedia.reduce((s,e)=>s+e.avg,0)/conMedia.length : null;
+  const ultima = evs.length ? evs.map(e=>e.fecha).sort().slice(-1)[0] : null;
+  return { evs, avg, ultima, count: evs.length };
+}
+
+function categoriasBreakdown(evs){
+  const byCat = {};
+  evs.forEach(e=>{
+    const cat = e.categoria || '—';
+    byCat[cat] = byCat[cat] || {count:0, vals:[]};
+    byCat[cat].count++;
+    if(e.avg!==null) byCat[cat].vals.push(e.avg);
+  });
+  return Object.keys(byCat).sort().map(cat=>{
+    const info = byCat[cat];
+    const avg = info.vals.length ? info.vals.reduce((s,v)=>s+v,0)/info.vals.length : null;
+    return { cat, count: info.count, avg };
+  });
+}
+
+document.getElementById('inf-col-arbitro').addEventListener('click', ()=>{ session.colectivo='arbitro'; document.getElementById('inf-col-arbitro').classList.add('active'); document.getElementById('inf-col-oficial').classList.remove('active'); renderInformes(); });
+document.getElementById('inf-col-oficial').addEventListener('click', ()=>{ session.colectivo='oficial'; document.getElementById('inf-col-oficial').classList.add('active'); document.getElementById('inf-col-arbitro').classList.remove('active'); renderInformes(); });
+
+function renderInformes(){
+  document.getElementById('inf-col-arbitro').classList.toggle('active', session.colectivo==='arbitro');
+  document.getElementById('inf-col-oficial').classList.toggle('active', session.colectivo==='oficial');
+  const catSel = document.getElementById('f-categoria');
+  const catPrev = catSel.value;
+  catSel.innerHTML = `<option value="">Todas las categorías</option>` +
+    CATS_POR_COLECTIVO[session.colectivo].map(c=>`<option value="${c}">Categoría ${c}</option>`).join('');
+  if(CATS_POR_COLECTIVO[session.colectivo].includes(catPrev)) catSel.value = catPrev;
+  const buscar = document.getElementById('f-buscar').value.toLowerCase();
+  const catFiltro = document.getElementById('f-categoria').value;
+  const orden = document.getElementById('f-orden').value;
+  const referees = state.referees.filter(r=>r.colectivo===session.colectivo);
+
+  let list;
+  if(catFiltro){
+    const refsCurrent = referees.filter(r=>r.categoria===catFiltro).map(r=>r.id);
+    const refsHistoric = state.evaluations.filter(e=>e.categoria===catFiltro && e.colectivo===session.colectivo).map(e=>e.arbitroId);
+    const idsSet = new Set([...refsCurrent, ...refsHistoric]);
+    list = referees.filter(r=>idsSet.has(r.id)).map(r=>({...r, ...statsForRefInCategory(r.id, catFiltro)}));
+  } else {
+    list = referees.map(r=>({...r, ...refStats(r.id)}));
+  }
+  if(buscar) list = list.filter(r=>r.nombre.toLowerCase().includes(buscar));
+
+  const evsFiltradas = list.flatMap(r=>r.evs);
+  const conMedia = evsFiltradas.filter(e=>e.avg!==null && e.avg!==undefined);
+  const avgGeneral = conMedia.length ? (conMedia.reduce((s,e)=>s+e.avg,0)/conMedia.length) : 0;
+  document.getElementById('resumen-general').innerHTML = `
+    <div class="summary-box"><div class="num tabular">${list.length}</div><div class="lbl">${COLECTIVO_LABEL_PL[session.colectivo]}${catFiltro?' (cat. '+catFiltro+')':''}</div></div>
+    <div class="summary-box"><div class="num tabular">${evsFiltradas.length}</div><div class="lbl">Evaluaciones${catFiltro?' en cat. '+catFiltro:''}</div></div>
+    <div class="summary-box"><div class="num tabular">${session.role==='admin' ? (conMedia.length?avgGeneral.toFixed(1):'—') : (conMedia.length?bandWord(avgGeneral):'—')}</div><div class="lbl">Media${catFiltro?' cat. '+catFiltro:' general'}</div></div>
+  `;
+
+  list.sort((a,b)=>{
+    if(orden==='avg-desc') return (b.avg??-1)-(a.avg??-1);
+    if(orden==='avg-asc') return (a.avg??999)-(b.avg??999);
+    if(orden==='nombre') return a.nombre.localeCompare(b.nombre);
+    if(orden==='num-desc') return b.count-a.count;
+    if(orden==='fecha-desc') return (b.ultima||'').localeCompare(a.ultima||'');
+    return 0;
+  });
+
+  const box = document.getElementById('ref-cards');
+  if(!list.length){ box.innerHTML = `<div class="empty">No hay ${COLECTIVO_LABEL_PL[session.colectivo].toLowerCase()} que coincidan con el filtro.</div>`; return; }
+  box.innerHTML = list.map(r=>`
+    <div class="ref-card" data-id="${r.id}">
+      ${avgBadgeBig(r.avg)}
+      <div class="ref-info">
+        <div class="ref-name">${r.nombre}<span class="badge">Cat. actual: ${r.categoria}</span></div>
+        <div class="ref-meta">${r.count} evaluación${r.count===1?'':'es'}${catFiltro?' en cat. '+catFiltro:''} · última: ${fmtDate(r.ultima)}</div>
+      </div>
+    </div>
+  `).join('');
+  box.querySelectorAll('.ref-card').forEach(c=>c.addEventListener('click', ()=>showDetalle(c.dataset.id)));
+}
+
+document.getElementById('f-buscar').addEventListener('input', renderInformes);
+document.getElementById('f-categoria').addEventListener('change', renderInformes);
+document.getElementById('f-orden').addEventListener('change', renderInformes);
+
+function showListado(){
+  document.getElementById('informes-lista').classList.remove('hidden');
+  document.getElementById('informes-detalle').classList.add('hidden');
+}
+document.getElementById('btn-volver').addEventListener('click', ()=>{ showListado(); renderInformes(); });
+
+function showDetalle(refId){
+  document.getElementById('informes-lista').classList.add('hidden');
+  document.getElementById('informes-detalle').classList.remove('hidden');
+  const r = state.referees.find(x=>x.id===refId);
+  const {evs, avg, count} = refStats(refId);
+  const asis = asistenciaStats(refId);
+
+  document.getElementById('detalle-cabecera').innerHTML = `
+    <div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;">
+      <div style="flex:1;min-width:0;">
+        <h2 style="color:var(--text);font-size:18px;margin-bottom:2px;">${r.nombre}</h2>
+        <div class="ref-meta">Categoría actual: ${r.categoria} · ${count} partido${count===1?'':'s'} informado${count===1?'':'s'} en total</div>
+        ${datosPerfil(r)?`<div class="ref-meta">${datosPerfil(r)}</div>`:''}
+        ${asis.total?`<div class="ref-meta">${asistenciaTexto(asis)}</div>`:''}
+        <div style="margin-top:10px;display:inline-block;">${avgBadgeBig(avg)}</div>
+      </div>
+      <div class="carnet-wrap">
+        ${carnetFotoHtml(r)}
+        ${session.role==='admin' ? `
+          <input type="file" accept="image/*" id="detalle-foto-input" class="hidden">
+          <button class="btn secondary carnet-upload-btn" id="detalle-foto-btn">Cambiar foto</button>
+        ` : ''}
+      </div>
+    </div>
+  `;
+  if(session.role==='admin'){
+    document.getElementById('detalle-foto-btn').addEventListener('click', ()=>document.getElementById('detalle-foto-input').click());
+    document.getElementById('detalle-foto-input').addEventListener('change', async (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      await subirFotoPersona(refId, file, ()=>showDetalle(refId));
+    });
+  }
+
+  const breakdown = categoriasBreakdown(evs);
+  document.getElementById('detalle-categorias').innerHTML = breakdown.length
+    ? breakdown.map(b=>`<div class="crit-avg-row"><span>Categoría ${b.cat} · ${b.count} partido${b.count===1?'':'s'}</span>${avgBadgeSmall(b.avg)}</div>`).join('')
+    : `<div class="empty">Sin evaluaciones todavía.</div>`;
+
+  const testsWrap = document.getElementById('detalle-tests-wrap');
+  const testsDeSuColectivo = state.tests.filter(t=>(t.colectivo||'arbitro')===r.colectivo);
+  if(testsDeSuColectivo.length){
+    testsWrap.classList.remove('hidden');
+    document.getElementById('detalle-tests').innerHTML = [...testsDeSuColectivo].sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(t=>{
+      const res = testResultado(t, r.id, r.categoria);
+      return `<div class="crit-avg-row"><span>${escapeHtml(t.titulo)}<span class="grp">${fmtDate(t.fecha)}</span></span>${testResultadoChip(res, t.numPreguntas)}</div>`;
+    }).join('');
+  } else {
+    testsWrap.classList.add('hidden');
+  }
+
+  const evsAsc = [...evs].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  document.getElementById('detalle-evolucion').innerHTML = renderEvolucion(evsAsc);
+
+  const evsOrdenadas = [...evs].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  document.getElementById('detalle-historial').innerHTML = techInformesColapsables(evsOrdenadas);
+  document.querySelectorAll('#detalle-historial [data-toggle]').forEach(head=>head.addEventListener('click', ()=>{
+    head.classList.toggle('open');
+    document.getElementById('body-'+head.dataset.toggle).classList.toggle('hidden');
+  }));
+  document.querySelectorAll('#detalle-historial [data-del-eval]').forEach(btn=>btn.addEventListener('click', async (ev)=>{
+    ev.stopPropagation();
+    const ok = await showConfirm('¿Eliminar este informe? No se puede deshacer.');
+    if(!ok) return;
+    state.evaluations = state.evaluations.filter(e=>e.id!==btn.dataset.delEval);
+    await saveEvaluations();
+    toast('Informe eliminado');
+    showDetalle(refId);
+  }));
+}
+
+function techInformesColapsables(evsDesc){
+  if(!evsDesc.length) return `<div class="empty">Sin evaluaciones todavía.</div>`;
+  const PRON_LABEL = {ascender:'Ascender', mantener:'Mantener', descender:'Descender'};
+  return evsDesc.map(e=>{
+    const chip = avgBadgeSmall(e.avg);
+    const scoresOrdenados = ordenarScoresComoAjustes(e.scores, e.colectivo);
+    const detalle = scoresOrdenados.filter(s=>s.tipo!=='texto').map(s=>{
+      const txt = s.value==='NA' ? 'N/A' : `${s.etiqueta} (${s.value})${s.peso&&s.peso!==1?` ×${s.peso}`:''}`;
+      const cls = s.value==='NA' ? 'gray' : colorForAvg(s.value);
+      return `<div class="crit-avg-row"><span><span class="grp">${s.grupo}</span>${s.label}</span><span class="chip ${cls}">${txt}</span></div>`;
+    }).join('');
+    const textos = scoresOrdenados.filter(s=>s.tipo==='texto' && s.value).map(s=>
+      `<div class="comment-block"><div class="comment-lbl">${s.label}</div><div class="comment-txt">${escapeHtml(s.value)}</div></div>`
+    ).join('');
+    return `<div class="eval-collapse">
+      <div class="eval-collapse-head" data-toggle="tec-${e.id}">
+        <div>
+          <div style="font-size:13px;font-weight:600;">${escapeHtml(e.partido || 'Partido sin especificar')} <span class="badge">Cat. ${e.categoria||'—'}</span></div>
+          <div class="ref-meta">${e.rolOficial?escapeHtml(e.rolOficial)+' · ':''}${e.partidoCategoria?escapeHtml(e.partidoCategoria)+' · ':''}${fmtDate(e.fecha)} · ${escapeHtml(e.formador)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">${chip}<span class="chevron">▸</span></div>
+      </div>
+      <div class="eval-collapse-body hidden" id="body-tec-${e.id}">
+        ${detalle}
+        ${textos}
+        ${e.pronostico?`<div class="comment-block interna"><div class="comment-lbl">Pronóstico do formador</div><div class="comment-txt">${PRON_LABEL[e.pronostico]||e.pronostico}</div></div>`:''}
+        ${e.interna?`<div class="comment-block interna"><div class="comment-lbl">Valoración interna</div><div class="comment-txt">${escapeHtml(e.interna)}</div></div>`:''}
+        ${e.feedback?`<div class="comment-block feedback"><div class="comment-lbl">Valoración para el árbitro</div><div class="comment-txt">${escapeHtml(e.feedback)}</div></div>`:''}
+        ${session.role==='admin' ? `<button class="btn danger" data-del-eval="${e.id}" style="margin-top:12px;width:100%;">Eliminar este informe</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ---------- VISTA ÁRBITRO (sesión ya identificada, solo color + palabra) ----------
+const LEVEL_COLOR = {4:'#3fb950',3:'#e3b341',2:'#e8802a',1:'#e5484d'};
+const LEVEL_WORD = {4:'Bueno',3:'Correcto',2:'Regular',1:'Malo'};
+function bandLevel(avg){ if(avg>=7.5) return 4; if(avg>=6) return 3; if(avg>=4.5) return 2; return 1; }
+
+function renderEvolucion(evsAsc){
+  const conMedia = evsAsc.filter(e=>e.avg!==null);
+  if(conMedia.length < 2) return `<div class="empty">Fai falta máis dunha evaluación para ver a evolución.</div>`;
+  const w = 640, h = 130, pad = 10, padBottom = 22;
+  const n = conMedia.length;
+  const slot = (w-2*pad)/n;
+  const barW = Math.min(34, slot*0.6);
+  const levelH = (h-padBottom-pad)/4;
+  const bars = conMedia.map((e,i)=>{
+    const lvl = bandLevel(e.avg);
+    const barH = lvl*levelH;
+    const x = pad + i*slot + (slot-barW)/2;
+    const y = h-padBottom-barH;
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" rx="3" fill="${LEVEL_COLOR[lvl]}"><title>${fmtDate(e.fecha)}: ${LEVEL_WORD[lvl]}</title></rect>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="130" style="overflow:visible;">
+      <line x1="${pad}" y1="${h-padBottom}" x2="${w-pad}" y2="${h-padBottom}" stroke="#323744" stroke-width="1"/>
+      ${bars}
+    </svg>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-top:2px;">
+      <span>${fmtDate(conMedia[0].fecha)}</span><span>${fmtDate(conMedia[n-1].fecha)}</span>
+    </div>
+    <p class="note" style="margin-top:8px;">Cada barra é unha evaluación, ordenada por data — canto máis alta e verde, mellor foi a valoración.</p>`;
+}
+
+function renderDistribucion(evs){
+  const conMedia = evs.filter(e=>e.avg!==null);
+  if(!conMedia.length) return `<div class="empty">Aínda non hai datos.</div>`;
+  const counts = {4:0,3:0,2:0,1:0};
+  conMedia.forEach(e=> counts[bandLevel(e.avg)]++);
+  const total = conMedia.length;
+  const segs = [4,3,2,1].filter(l=>counts[l]>0).map(l=>
+    `<div style="flex:${counts[l]};background:${LEVEL_COLOR[l]};" title="${LEVEL_WORD[l]}: ${counts[l]}"></div>`
+  ).join('');
+  const legend = [4,3,2,1].map(l=>`
+    <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-dim);">
+      <span style="width:9px;height:9px;border-radius:50%;background:${LEVEL_COLOR[l]};display:inline-block;"></span>${LEVEL_WORD[l]} (${counts[l]})
+    </span>`).join('');
+  return `<div style="display:flex;height:22px;border-radius:4px;overflow:hidden;">${segs}</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;">${legend}</div>
+    <p class="note">De ${total} evaluación${total===1?'':'s'} en total.</p>`;
+}
+
+function renderFortalezas(evs){
+  const porCriterio = {};
+  evs.forEach(e=> e.scores.forEach(s=>{
+    if(s.incluirMedia===false) return;
+    porCriterio[s.label] = porCriterio[s.label] || {grupo:s.grupo, vals:[]};
+    if(typeof s.value==='number') porCriterio[s.label].vals.push(s.value);
+  }));
+  const arr = Object.entries(porCriterio).filter(([,v])=>v.vals.length).map(([label,v])=>({
+    label, avg: v.vals.reduce((s,x)=>s+x,0)/v.vals.length
+  }));
+  if(arr.length < 2) return `<div class="empty">Aínda non hai datos abondo.</div>`;
+  arr.sort((a,b)=>b.avg-a.avg);
+  const mejores = arr.slice(0,3), peores = arr.slice(-3).reverse();
+  const list = items => items.map(it=>`<div class="crit-avg-row"><span>${it.label}</span><span class="word-chip ${colorForAvg(it.avg)}">${bandWord(it.avg)}</span></div>`).join('');
+  return `<div class="grupo-titulo" style="margin-top:0;">Puntos fortes</div>${list(mejores)}
+    <div class="grupo-titulo">A mellorar</div>${list(peores)}`;
+}
+
+function renderInformesColapsables(evsDesc){
+  if(!evsDesc.length) return `<div class="empty">Aínda non hai informes.</div>`;
+  return evsDesc.map(e=>{
+    const chip = e.avg!==null ? `<span class="word-chip ${colorForAvg(e.avg)}">${bandWord(e.avg)}</span>` : `<span class="word-chip gray">Sen nota</span>`;
+    const scoresOrdenados = ordenarScoresComoAjustes(e.scores, e.colectivo);
+    const detalle = scoresOrdenados.filter(s=>!s.soloFormadores && s.tipo!=='texto').map(s=>{
+      const txt = s.value==='NA' ? 'N/A' : s.etiqueta;
+      const cls = s.value==='NA' ? 'gray' : colorForAvg(s.value);
+      return `<div class="crit-avg-row"><span><span class="grp">${s.grupo}</span>${s.label}</span><span class="word-chip ${cls}">${txt}</span></div>`;
+    }).join('');
+    return `<div class="eval-collapse">
+      <div class="eval-collapse-head" data-toggle="${e.id}">
+        <div>
+          <div style="font-size:13px;font-weight:600;">${escapeHtml(e.partido || 'Partido sen especificar')} <span class="badge">Cat. ${e.categoria||'—'}</span></div>
+          <div class="ref-meta">${e.rolOficial?escapeHtml(e.rolOficial)+' · ':''}${e.partidoCategoria?escapeHtml(e.partidoCategoria)+' · ':''}${fmtDate(e.fecha)} · ${escapeHtml(e.formador)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">${chip}<span class="chevron">▸</span></div>
+      </div>
+      <div class="eval-collapse-body hidden" id="body-${e.id}">
+        ${detalle}
+        ${e.feedback ? `<div class="comment-block feedback"><div class="comment-lbl">Comentario</div><div class="comment-txt">${escapeHtml(e.feedback)}</div></div>` : `<p class="note">Sen comentario para este partido.</p>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderVistaDetalle(refId){
+  const box = document.getElementById('vt-resultado');
+  const r = state.referees.find(x=>x.id===refId);
+  const {evs, count} = refStats(refId);
+  const asis = asistenciaStats(refId);
+  const evsAsc = [...evs].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const evsDesc = [...evs].sort((a,b)=>b.fecha.localeCompare(a.fecha));
+
+  let html = `<div class="card">
+    <div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;">
+      <div style="flex:1;min-width:0;">
+        <h2 style="color:var(--text);font-size:16px;margin-bottom:2px;">${r.nombre}</h2>
+        <div class="ref-meta">${count} partido${count===1?'':'s'} informado${count===1?'':'s'} · categoría actual ${r.categoria}</div>
+        ${datosPerfil(r)?`<div class="ref-meta">${datosPerfil(r)}</div>`:''}
+        ${asis.total?`<div class="ref-meta">${asistenciaTexto(asis)}</div>`:''}
+      </div>
+      <div class="carnet-wrap">
+        ${carnetFotoHtml(r)}
+        <input type="file" accept="image/*" id="vt-foto-input" class="hidden">
+        <button class="btn secondary carnet-upload-btn" id="vt-foto-btn">${r.foto?'Cambiar foto':'Subir foto'}</button>
+      </div>
+    </div>
+  </div>`;
+
+  const breakdown = categoriasBreakdown(evs);
+  if(breakdown.length > 1){
+    html += `<div class="card"><h2>Medias por categoría</h2>${
+      breakdown.map(b=>`<div class="crit-avg-row"><span>Categoría ${b.cat} (${b.count} partido${b.count===1?'':'s'})</span><span class="word-chip ${b.avg!==null?colorForAvg(b.avg):'gray'}">${b.avg!==null?bandWord(b.avg):'Sen nota'}</span></div>`).join('')
+    }</div>`;
+  }
+
+  const testsDeSuColectivo2 = state.tests.filter(t=>(t.colectivo||'arbitro')===r.colectivo);
+  if(testsDeSuColectivo2.length){
+    html += `<div class="card"><h2>Tests de reglas</h2>${
+      [...testsDeSuColectivo2].sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(t=>{
+        const res = testResultado(t, r.id, r.categoria);
+        return `<div class="crit-avg-row"><span>${escapeHtml(t.titulo)}<span class="grp">${fmtDate(t.fecha)}</span></span>${testResultadoChip(res, t.numPreguntas)}</div>`;
+      }).join('')
+    }</div>`;
+  }
+
+  html += `<div class="card"><h2>Informes por partido</h2>${renderInformesColapsables(evsDesc)}</div>`;
+  html += `<div class="card"><h2>Evolución</h2>${renderEvolucion(evsAsc)}</div>`;
+  html += `<div class="card"><h2>Distribución de valoracións</h2>${renderDistribucion(evs)}</div>`;
+  html += `<div class="card"><h2>Puntos fortes e a mellorar</h2>${renderFortalezas(evs)}</div>`;
+
+  box.innerHTML = html;
+  document.getElementById('vt-foto-btn').addEventListener('click', ()=>document.getElementById('vt-foto-input').click());
+  document.getElementById('vt-foto-input').addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    await subirFotoPersona(refId, file, ()=>renderVistaDetalle(refId));
+  });
+  document.querySelectorAll('[data-toggle]').forEach(head=>head.addEventListener('click', ()=>{
+    head.classList.toggle('open');
+    document.getElementById('body-'+head.dataset.toggle).classList.toggle('hidden');
+  }));
+}
+
+// ---------- EXPORT CSV ----------
+document.getElementById('btn-export-csv').addEventListener('click', ()=>{
+  const evs = state.evaluations.filter(e=>e.colectivo===session.colectivo);
+  if(!evs.length){ toast('No hay evaluaciones que exportar en este colectivo'); return; }
+  const critLabels = [...new Set(evs.flatMap(e=>e.scores.map(s=>s.label)))];
+  const headers = ['Fecha','Nombre','Categoría','Categoría partido','Rol','Formador','Partido', ...critLabels, 'Media','Pronóstico','Valoración interna','Valoración para el evaluado'];
+  const rows = evs.map(e=>{
+    const byLabel = {}; e.scores.forEach(s=>{
+      byLabel[s.label] = s.tipo==='texto' ? (s.value||'') : (s.value==='NA' ? 'N/A' : `${s.etiqueta} (${s.value})${s.peso&&s.peso!==1?` [peso ${s.peso}]`:''}`);
+    });
+    return [ e.fecha, e.arbitroNombre, e.categoria, e.partidoCategoria||'', e.rolOficial||'', e.formador, e.partido||'', ...critLabels.map(l=>byLabel[l]??''), e.avg!==null?e.avg:'', e.pronostico||'', e.interna||'', e.feedback||'' ];
+  });
+  const csvEsc = v => `"${String(v).replace(/"/g,'""')}"`;
+  const csv = [headers, ...rows].map(r=>r.map(csvEsc).join(';')).join('\r\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `evaluaciones_${session.colectivo}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+// ---------- TESTS DE REGLAS ----------
+const CATS_ARBITRO = CATS_POR_COLECTIVO.arbitro;
+
+function showListadoTests(){
+  document.getElementById('tr-lista-wrap').classList.remove('hidden');
+  document.getElementById('tr-detalle-wrap').classList.add('hidden');
+}
+function showTestDetalle(tid){
+  document.getElementById('tr-lista-wrap').classList.add('hidden');
+  document.getElementById('tr-detalle-wrap').classList.remove('hidden');
+  renderTestDetalle(tid);
+}
+document.getElementById('tr-btn-volver').addEventListener('click', ()=>{ showListadoTests(); renderTests(); });
+
+let testsColectivo = 'arbitro';
+function renderUmbralesWrap(){
+  const wrap = document.getElementById('tr-umbrales-wrap');
+  wrap.innerHTML = CATS_POR_COLECTIVO[testsColectivo].map(c=>`<input type="number" id="tr-umbral-${c}" min="0" placeholder="Cat. ${c}">`).join('');
+}
+document.getElementById('tr-col-arbitro').addEventListener('click', ()=>{ testsColectivo='arbitro'; document.getElementById('tr-col-arbitro').classList.add('active'); document.getElementById('tr-col-oficial').classList.remove('active'); renderUmbralesWrap(); renderTests(); });
+document.getElementById('tr-col-oficial').addEventListener('click', ()=>{ testsColectivo='oficial'; document.getElementById('tr-col-oficial').classList.add('active'); document.getElementById('tr-col-arbitro').classList.remove('active'); renderUmbralesWrap(); renderTests(); });
+
+document.getElementById('tr-add').addEventListener('click', async ()=>{
+  const titulo = document.getElementById('tr-titulo').value.trim();
+  const fecha = document.getElementById('tr-fecha').value || todayStr();
+  const numPreguntas = Number(document.getElementById('tr-numpreguntas').value)||0;
+  if(!titulo){ toast('Escribe el título del test'); return; }
+  if(!numPreguntas){ toast('Indica el número de preguntas'); return; }
+  const umbral = {};
+  CATS_POR_COLECTIVO[testsColectivo].forEach(c=>{ umbral[c] = Number(document.getElementById(`tr-umbral-${c}`).value)||0; });
+  state.tests.push({id:uid(), titulo, fecha, numPreguntas, colectivo:testsColectivo, umbral, resultados:{}});
+  await saveTests();
+  document.getElementById('tr-titulo').value='';
+  document.getElementById('tr-numpreguntas').value='';
+  CATS_POR_COLECTIVO[testsColectivo].forEach(c=>{ document.getElementById(`tr-umbral-${c}`).value=''; });
+  renderTests();
+  toast('Test creado');
+});
+
+function testResultado(test, refId, refCategoria){
+  const r = test.resultados[refId];
+  if(!r) return null;
+  if(r.noRealizado) return {estado:'no-realizado'};
+  const umbral = test.umbral[r.categoria||refCategoria] ?? 0;
+  return {estado: r.aciertos>=umbral ? 'aprobado' : 'suspenso', aciertos:r.aciertos, umbral, categoria:r.categoria||refCategoria};
+}
+function testResultadoChip(res, numPreguntas){
+  if(!res) return `<span class="chip gray">Pendiente</span>`;
+  if(res.estado==='no-realizado') return `<span class="chip gray">No realizado</span>`;
+  const cls = res.estado==='aprobado' ? 'v9' : 'v3';
+  return `<span class="chip ${cls}">${res.aciertos}/${numPreguntas} · ${res.estado==='aprobado'?'Aprobado':'Suspenso'}</span>`;
+}
+
+function renderTests(){
+  document.getElementById('tr-col-arbitro').classList.toggle('active', testsColectivo==='arbitro');
+  document.getElementById('tr-col-oficial').classList.toggle('active', testsColectivo==='oficial');
+  const box = document.getElementById('tr-lista');
+  const personas = state.referees.filter(r=>r.colectivo===testsColectivo);
+  const testsCol = state.tests.filter(t=>(t.colectivo||'arbitro')===testsColectivo);
+  box.innerHTML = testsCol.length
+    ? [...testsCol].sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(t=>{
+        const hechos = personas.filter(r=>t.resultados[r.id]).length;
+        return `<div class="ref-card" data-tid="${t.id}">
+          <div class="ref-avg" style="background:var(--panel-2);color:var(--text-dim);">${hechos}/${personas.length}</div>
+          <div class="ref-info">
+            <div class="ref-name">${escapeHtml(t.titulo)}</div>
+            <div class="ref-meta">${fmtDate(t.fecha)} · ${t.numPreguntas} preguntas</div>
+          </div>
+        </div>`;
+      }).join('')
+    : `<div class="empty">Todavía no hay tests de ${COLECTIVO_LABEL_PL[testsColectivo].toLowerCase()} creados.</div>`;
+  box.querySelectorAll('[data-tid]').forEach(c=>c.addEventListener('click', ()=>showTestDetalle(c.dataset.tid)));
+}
+
+function renderTestDetalle(tid){
+  const t = state.tests.find(x=>x.id===tid);
+  const cats = CATS_POR_COLECTIVO[t.colectivo||'arbitro'];
+  const personas = state.referees.filter(r=>r.colectivo===(t.colectivo||'arbitro'));
+  document.getElementById('tr-detalle-cabecera').innerHTML = `
+    <h2 style="color:var(--text);font-size:18px;margin-bottom:2px;">${escapeHtml(t.titulo)}</h2>
+    <div class="ref-meta">${COLECTIVO_LABEL[t.colectivo||'arbitro']} · ${fmtDate(t.fecha)} · ${t.numPreguntas} preguntas · aprobado: ${cats.map(c=>`Cat.${c}≥${t.umbral[c]??0}`).join(' · ')}</div>
+    <div class="row" style="margin-top:12px;">
+      <button class="btn secondary" id="tr-edit-test">Editar test</button>
+      <button class="btn danger" id="tr-del-test">Eliminar este test</button>
+    </div>
+    <div class="edit-form hidden" id="tr-edit-form"></div>
+  `;
+  document.getElementById('tr-edit-test').addEventListener('click', ()=>{
+    const wrap = document.getElementById('tr-edit-form');
+    if(!wrap.classList.contains('hidden')){ wrap.classList.add('hidden'); wrap.innerHTML=''; return; }
+    wrap.innerHTML = `
+      <label>Título</label>
+      <input type="text" id="tre-titulo" value="${esc(t.titulo)}">
+      <div class="row">
+        <div><label>Fecha</label><input type="date" id="tre-fecha" value="${t.fecha}"></div>
+        <div><label>Nº de preguntas</label><input type="number" id="tre-numpreguntas" min="1" value="${t.numPreguntas}"></div>
+      </div>
+      <label style="margin-top:12px;">Aprobado a partir de (por categoría)</label>
+      <div class="row">
+        ${cats.map(c=>`<input type="number" min="0" id="tre-umbral-${c}" value="${t.umbral[c]??0}" placeholder="Cat. ${c}">`).join('')}
+      </div>
+      <div class="erow">
+        <button class="btn small" id="tre-save">Guardar</button>
+        <button class="btn secondary" id="tre-cancel">Cancelar</button>
+      </div>
+    `;
+    wrap.classList.remove('hidden');
+    document.getElementById('tre-save').addEventListener('click', async ()=>{
+      t.titulo = document.getElementById('tre-titulo').value.trim() || t.titulo;
+      t.fecha = document.getElementById('tre-fecha').value || t.fecha;
+      t.numPreguntas = Number(document.getElementById('tre-numpreguntas').value) || t.numPreguntas;
+      cats.forEach(c=>{ t.umbral[c] = Number(document.getElementById(`tre-umbral-${c}`).value)||0; });
+      await saveTests();
+      renderTestDetalle(tid);
+      toast('Test actualizado');
+    });
+    document.getElementById('tre-cancel').addEventListener('click', ()=>{ wrap.classList.add('hidden'); wrap.innerHTML=''; });
+  });
+  const chk = document.getElementById('tr-checklist');
+  chk.innerHTML = personas.length
+    ? personas.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'})).map(r=>{
+        const actual = t.resultados[r.id];
+        return `<div class="list-item">
+          <span>${r.nombre}<span class="badge">Cat. ${r.categoria}</span></span>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input type="number" min="0" max="${t.numPreguntas}" style="width:64px;" data-tr-aciertos="${r.id}"
+              value="${actual&&!actual.noRealizado?actual.aciertos:''}" ${actual&&actual.noRealizado?'disabled':''}>
+            <label class="chk-inline"><input type="checkbox" data-tr-norealizado="${r.id}" ${actual&&actual.noRealizado?'checked':''}> No realizado</label>
+          </div>
+        </div>`;
+      }).join('')
+    : `<div class="empty">No hay ${COLECTIVO_LABEL_PL[t.colectivo||'arbitro'].toLowerCase()} dados de alta todavía.</div>`;
+
+  function guardarResultado(refId){
+    const chkNo = document.querySelector(`[data-tr-norealizado="${refId}"]`);
+    const inpAc = document.querySelector(`[data-tr-aciertos="${refId}"]`);
+    const ref = state.referees.find(r=>r.id===refId);
+    if(chkNo.checked){
+      t.resultados[refId] = {noRealizado:true, categoria:ref.categoria};
+      inpAc.disabled = true;
+    } else {
+      const val = inpAc.value;
+      if(val===''){ delete t.resultados[refId]; }
+      else { t.resultados[refId] = {aciertos:Number(val), categoria:ref.categoria}; }
+      inpAc.disabled = false;
+    }
+  }
+  chk.querySelectorAll('[data-tr-aciertos]').forEach(inp=>inp.addEventListener('change', async ()=>{
+    guardarResultado(inp.dataset.trAciertos);
+    await saveTests();
+  }));
+  chk.querySelectorAll('[data-tr-norealizado]').forEach(box=>box.addEventListener('change', async ()=>{
+    guardarResultado(box.dataset.trNorealizado);
+    await saveTests();
+  }));
+  document.getElementById('tr-del-test').addEventListener('click', async ()=>{
+    const ok = await showConfirm('¿Eliminar este test y todos sus resultados? No se puede deshacer.');
+    if(!ok) return;
+    state.tests = state.tests.filter(x=>x.id!==tid);
+    await saveTests();
+    toast('Test eliminado');
+    showListadoTests(); renderTests();
+  });
+}
+
+// ---------- ASISTENCIA ----------
+function showListadoAsistencia(){
+  document.getElementById('af-lista-wrap').classList.remove('hidden');
+  document.getElementById('af-detalle-wrap').classList.add('hidden');
+}
+function showFormacionDetalle(fid){
+  document.getElementById('af-lista-wrap').classList.add('hidden');
+  document.getElementById('af-detalle-wrap').classList.remove('hidden');
+  renderFormacionDetalle(fid);
+}
+document.getElementById('af-btn-volver').addEventListener('click', ()=>{ showListadoAsistencia(); renderAsistencia(); });
+
+document.getElementById('af-col-arbitro').addEventListener('click', ()=>{ session.colectivo='arbitro'; document.getElementById('af-col-arbitro').classList.add('active'); document.getElementById('af-col-oficial').classList.remove('active'); renderAsistencia(); });
+document.getElementById('af-col-oficial').addEventListener('click', ()=>{ session.colectivo='oficial'; document.getElementById('af-col-oficial').classList.add('active'); document.getElementById('af-col-arbitro').classList.remove('active'); renderAsistencia(); });
+
+document.getElementById('af-add').addEventListener('click', async ()=>{
+  const nombre = document.getElementById('af-nombre').value.trim();
+  const fecha = document.getElementById('af-fecha').value || todayStr();
+  if(!nombre){ toast('Escribe el nombre de la formación'); return; }
+  state.formaciones.push({id:uid(), nombre, fecha, colectivo:session.colectivo, estados:{}});
+  await saveFormaciones();
+  document.getElementById('af-nombre').value='';
+  renderAsistencia();
+  toast('Formación creada');
+});
+
+function contarSi(f){ return Object.values(f.estados).filter(v=>v==='si').length; }
+function renderAsistencia(){
+  document.getElementById('af-col-arbitro').classList.toggle('active', session.colectivo==='arbitro');
+  document.getElementById('af-col-oficial').classList.toggle('active', session.colectivo==='oficial');
+  document.getElementById('af-global-titulo').textContent = `Asistencia global por ${session.colectivo==='oficial'?'oficial':'árbitro'}`;
+
+  const personas = state.referees.filter(r=>r.colectivo===session.colectivo);
+  const formaciones = state.formaciones.filter(f=>f.colectivo===session.colectivo);
+  const totalPersonas = personas.length;
+  const totalFormaciones = formaciones.length;
+  const mediaAsistencia = totalFormaciones && totalPersonas
+    ? (formaciones.reduce((s,f)=>s+contarSi(f),0) / (totalFormaciones*totalPersonas) * 100)
+    : 0;
+  document.getElementById('af-resumen').innerHTML = `
+    <div class="summary-box"><div class="num tabular">${totalFormaciones}</div><div class="lbl">Formaciones</div></div>
+    <div class="summary-box"><div class="num tabular">${totalPersonas}</div><div class="lbl">${COLECTIVO_LABEL_PL[session.colectivo]}</div></div>
+    <div class="summary-box"><div class="num tabular">${totalFormaciones?mediaAsistencia.toFixed(0)+'%':'—'}</div><div class="lbl">Asistencia media</div></div>
+  `;
+
+  const lista = document.getElementById('af-lista-formaciones');
+  lista.innerHTML = formaciones.length
+    ? [...formaciones].sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(f=>`
+      <div class="ref-card" data-fid="${f.id}">
+        <div class="ref-avg" style="background:var(--panel-2);color:var(--text-dim);">${contarSi(f)}/${totalPersonas||0}</div>
+        <div class="ref-info">
+          <div class="ref-name">${escapeHtml(f.nombre)}</div>
+          <div class="ref-meta">${fmtDate(f.fecha)}</div>
+        </div>
+      </div>`).join('')
+    : `<div class="empty">Todavía no hay formaciones de ${COLECTIVO_LABEL_PL[session.colectivo].toLowerCase()} creadas.</div>`;
+  lista.querySelectorAll('[data-fid]').forEach(c=>c.addEventListener('click', ()=>showFormacionDetalle(c.dataset.fid)));
+
+  const global = document.getElementById('af-global');
+  global.innerHTML = totalFormaciones
+    ? personas.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'})).map(r=>{
+        const asis = asistenciaStats(r.id);
+        const pct = asis.total ? Math.round(asis.asistidas/asis.total*100) : 0;
+        return `<div class="list-item"><span>${r.nombre}<span class="badge">Cat. ${r.categoria}</span></span><span>${asis.asistidas}/${asis.total} · ${pct}%</span></div>`;
+      }).join('')
+    : `<div class="empty">Crea una formación para empezar a pasar lista.</div>`;
+}
+
+function renderFormacionDetalle(fid){
+  const f = state.formaciones.find(x=>x.id===fid);
+  const personas = state.referees.filter(r=>r.colectivo===f.colectivo);
+  document.getElementById('af-detalle-cabecera').innerHTML = `
+    <h2 style="color:var(--text);font-size:18px;margin-bottom:2px;">${escapeHtml(f.nombre)}</h2>
+    <div class="ref-meta">${fmtDate(f.fecha)} · ${COLECTIVO_LABEL[f.colectivo]} · ${contarSi(f)}/${personas.length} asistentes</div>
+    ${session.role==='admin' ? `<button class="btn danger" id="af-del-formacion" style="margin-top:12px;width:100%;">Eliminar esta formación</button>` : ''}
+  `;
+  const chk = document.getElementById('af-checklist');
+  chk.innerHTML = personas.length
+    ? personas.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'})).map(r=>`
+      <div class="list-item">
+        <span>${r.nombre}<span class="badge">Cat. ${r.categoria}</span></span>
+        <select data-asis-ref="${r.id}" style="width:auto;">
+          <option value="" ${!f.estados[r.id]?'selected':''}>No asistió</option>
+          <option value="si" ${f.estados[r.id]==='si'?'selected':''}>Asistió</option>
+          <option value="justificada" ${f.estados[r.id]==='justificada'?'selected':''}>Ausencia justificada</option>
+        </select>
+      </div>`).join('')
+    : `<div class="empty">No hay ${COLECTIVO_LABEL_PL[f.colectivo].toLowerCase()} dados de alta todavía.</div>`;
+  chk.querySelectorAll('[data-asis-ref]').forEach(sel=>sel.addEventListener('change', async ()=>{
+    const rid = sel.dataset.asisRef;
+    if(sel.value){ f.estados[rid] = sel.value; } else { delete f.estados[rid]; }
+    await saveFormaciones();
+    document.getElementById('af-detalle-cabecera').querySelector('.ref-meta').textContent = `${fmtDate(f.fecha)} · ${COLECTIVO_LABEL[f.colectivo]} · ${contarSi(f)}/${personas.length} asistentes`;
+  }));
+  const delBtn = document.getElementById('af-del-formacion');
+  if(delBtn) delBtn.addEventListener('click', async ()=>{
+    const ok = await showConfirm('¿Eliminar esta formación y su lista de asistencia? No se puede deshacer.');
+    if(!ok) return;
+    state.formaciones = state.formaciones.filter(x=>x.id!==fid);
+    await saveFormaciones();
+    toast('Formación eliminada');
+    showListadoAsistencia(); renderAsistencia();
+  });
+}
+
+// ---------- AJUSTES ----------
+function grupoOptions(colectivo){
+  const grupos = [...new Set(state.criterios.filter(c=>(c.colectivo||'arbitro')===colectivo).map(c=>c.grupo))];
+  return grupos.map(g=>`<option value="${g}">${g}</option>`).join('') + `<option value="__nuevo__">+ Nuevo grupo…</option>`;
+}
+
+document.getElementById('aj-pin-admin-guardar').addEventListener('click', async ()=>{
+  const v = document.getElementById('aj-pin-admin').value.trim();
+  if(!v){ toast('Escribe un PIN'); return; }
+  try{
+    await setAdminPin(v);
+    document.getElementById('aj-pin-admin').value='';
+    toast('PIN de administrador actualizado');
+  }catch(e){
+    toast('No se pudo guardar el PIN: '+(e&&e.message?e.message:'inténtalo de nuevo'));
+  }
+});
+
+document.getElementById('aj-backup-export').addEventListener('click', ()=>{
+  const backup = {
+    version: 3,
+    exportadoEn: new Date().toISOString(),
+    referees: state.referees,
+    formadores: state.formadores,
+    criterios: state.criterios,
+    evaluations: state.evaluations,
+    categoriasPartido: state.categoriasPartido,
+    formaciones: state.formaciones,
+    tests: state.tests,
+    grupoOrden: state.grupoOrden
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const fecha = todayStr();
+  a.href = url; a.download = `copia_seguridad_${fecha}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Copia completa descargada');
+});
+
+document.getElementById('aj-backup-import-btn').addEventListener('click', async ()=>{
+  const input = document.getElementById('aj-backup-import');
+  const file = input.files[0];
+  if(!file){ toast('Selecciona primero un archivo de copia'); return; }
+  let backup;
+  try{
+    const texto = await file.text();
+    backup = JSON.parse(texto);
+  }catch(e){ toast('El archivo no es una copia válida'); return; }
+  if(!backup || !Array.isArray(backup.referees)){ toast('El archivo no es una copia válida'); return; }
+  const ok = await showConfirm(`¿Restaurar la copia del ${backup.exportadoEn?fmtDate(backup.exportadoEn.slice(0,10)):'archivo seleccionado'}? Esto sobrescribirá TODOS los datos actuales (árbitros, oficiales, formadores, informes, formaciones, tests y categorías).`, 'Restaurar');
+  if(!ok) return;
+  try{
+    state.referees = backup.referees || [];
+    state.formadores = backup.formadores || [];
+    state.criterios = backup.criterios || [];
+    state.evaluations = backup.evaluations || [];
+    state.categoriasPartido = backup.categoriasPartido || [];
+    state.formaciones = backup.formaciones || [];
+    state.tests = backup.tests || [];
+    state.grupoOrden = backup.grupoOrden || {arbitro:[], oficial:[]};
+    const resultados = await migrarTodoYGuardar();
+    input.value = '';
+    renderAjustes(); renderEvaluarArbitros(); renderFormadoresSelect(); renderCategoriasPartidoSelect(); renderCriterios();
+    showListadoTests(); renderTests();
+    const fallos = resultados.filter(r=>!r.ok);
+    if(!fallos.length){
+      toast('Copia restaurada con éxito');
+    } else {
+      const detalle = fallos.map(f=>`${f.nombre} (${f.tamanoKB} KB): ${f.error}`).join(' | ');
+      await showConfirm(`Se restauró parte de la copia, pero fallaron estos bloques — probablemente hay que reintentarlos: ${detalle}`, 'Entendido');
+    }
+  }catch(e){
+    toast('Error al restaurar: '+(e&&e.message?e.message:'inténtalo de nuevo'));
+  }
+});
+
+function personaListHtml(r){
+  return `
+    <div class="list-item">
+      <span>${r.nombre}
+        <select data-cat-ref="${r.id}" style="display:inline-block;width:auto;padding:2px 6px;font-size:11px;margin:0 4px;">
+          ${CATS_POR_COLECTIVO[r.colectivo||'arbitro'].map(c=>`<option value="${c}" ${r.categoria===c?'selected':''}>Cat. ${c}</option>`).join('')}
+        </select>
+        <span class="badge">Código: ${r.codigo}</span>
+        <span class="meta">${datosPerfil(r)||'Sin fecha de nacimiento ni de alta'}</span>
+      </span>
+      <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
+        <button class="btn secondary" data-edit-perfil-ref="${r.id}">Editar perfil</button>
+        <button class="btn secondary" data-regen-ref="${r.id}">Regenerar código</button>
+        <button class="btn danger" data-del-ref="${r.id}">Eliminar</button>
+      </div>
+    </div>
+    <div class="edit-form hidden" id="edit-perfil-ref-${r.id}"></div>`;
+}
+
+function criterioListHtml(c){
+  const tipoTxt = c.tipo==='texto' ? 'texto libre' : `${(c.opciones||[]).length} opcións`;
+  const pesoTxt = (c.peso && c.peso!==1) ? ` · peso ${c.peso}` : '';
+  const textoTxt = c.textoEnBoton ? ' · texto no recadro' : '';
+  const funcTxt = (c.funciones&&c.funciones.length)
+    ? ' · só en: '+c.funciones.map(k=>{ const f=FUNCIONES_OFICIAL.find(x=>x.key===k); return f?f.label:k; }).join(', ')
+    : '';
+  return `
+    <div class="crit-drag-item" data-drag-item="${c.id}" data-drag-grupo="${esc(c.grupo)}">
+      <span class="crit-drag-handle" data-drag-handle="${c.id}">⠿</span>
+      <div class="list-item" style="border-top:none;padding:0;flex:1;">
+        <span>${c.label}<span class="meta">${tipoTxt}${c.permiteNA?' · admite N/A':''}${c.incluirMedia===false?' · fóra da media':''}${c.soloFormadores?' · só formadores':''}${pesoTxt}${textoTxt}${funcTxt}</span></span>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="btn secondary" data-edit-crit="${c.id}">Editar</button>
+          <button class="btn danger" data-del-crit="${c.id}">Eliminar</button>
+        </div>
+      </div>
+    </div>
+    <div class="edit-form hidden" id="edit-${c.id}"></div>`;
+}
+function criteriosAgrupadosHtml(lista, colectivo){
+  return agruparPorGrupo(lista, colectivo).map(g=>`
+    <div class="grp-block" data-grp-drag="${esc(g.grupo)}">
+      <div class="grp-drag-item">
+        <span class="grp-drag-handle" data-grp-drag-handle="${esc(g.grupo)}">⠿⠿</span>
+        <h3 class="grupo-titulo" style="margin:0;flex:1;">${g.grupo}</h3>
+      </div>
+      <div data-grupo-container="${esc(g.grupo)}">${g.items.map(criterioListHtml).join('')}</div>
+    </div>
+  `).join('');
+}
+function activarArrastreCriterios(containerId, colectivo){
+  const container = document.getElementById(containerId);
+  container.querySelectorAll('[data-grupo-container]').forEach(grupoEl=>{
+    const grupoNombre = grupoEl.dataset.grupoContainer;
+    const items = () => [...grupoEl.querySelectorAll('[data-drag-item]')];
+    grupoEl.querySelectorAll('[data-drag-handle]').forEach(handle=>{
+      handle.addEventListener('pointerdown', (ev)=>{
+        ev.preventDefault();
+        const item = handle.closest('[data-drag-item]');
+        item.classList.add('dragging');
+
+        function onMove(e){
+          const y = e.clientY;
+          const siblings = items().filter(s=>s!==item);
+          siblings.forEach(s=>s.classList.remove('drag-over-before','drag-over-after'));
+          let target = null, before = true;
+          for(const sib of siblings){
+            const rect = sib.getBoundingClientRect();
+            const mid = rect.top + rect.height/2;
+            if(y < mid){ target = sib; before = true; break; }
+            target = sib; before = false;
+          }
+          if(target){
+            if(before) grupoEl.insertBefore(item, target);
+            else grupoEl.insertBefore(item, target.nextSibling);
+          }
+        }
+        function onUp(){
+          document.removeEventListener('pointermove', onMove);
+          document.removeEventListener('pointerup', onUp);
+          item.classList.remove('dragging');
+          items().forEach(s=>s.classList.remove('drag-over-before','drag-over-after'));
+          const nuevoOrden = items().map(el=>el.dataset.dragItem);
+          reordenarGrupo(colectivo, grupoNombre, nuevoOrden);
+          saveCriterios().then(()=>{
+            renderAjustes();
+            const vEval = document.getElementById('view-evaluar');
+            if(vEval && !vEval.classList.contains('hidden')) renderCriterios();
+          });
+        }
+        document.addEventListener('pointermove', onMove);
+        document.addEventListener('pointerup', onUp, {once:true});
+      });
+    });
+  });
+}
+function activarArrastreGrupos(containerId, colectivo){
+  const container = document.getElementById(containerId);
+  const bloques = () => [...container.querySelectorAll(':scope > .grp-block')];
+  container.querySelectorAll('[data-grp-drag-handle]').forEach(handle=>{
+    handle.addEventListener('pointerdown', (ev)=>{
+      ev.preventDefault();
+      const bloque = handle.closest('.grp-block');
+      bloque.classList.add('dragging');
+
+      function onMove(e){
+        const y = e.clientY;
+        const siblings = bloques().filter(s=>s!==bloque);
+        let target = null, before = true;
+        for(const sib of siblings){
+          const rect = sib.getBoundingClientRect();
+          const mid = rect.top + rect.height/2;
+          if(y < mid){ target = sib; before = true; break; }
+          target = sib; before = false;
+        }
+        if(target){
+          if(before) container.insertBefore(bloque, target);
+          else container.insertBefore(bloque, target.nextSibling);
+        }
+      }
+      function onUp(){
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onUp);
+        bloque.classList.remove('dragging');
+        const nuevoOrden = bloques().map(el=>el.dataset.grpDrag);
+        guardarOrdenGrupos(colectivo, nuevoOrden).then(()=>{
+          renderAjustes();
+          const vEval = document.getElementById('view-evaluar');
+          if(vEval && !vEval.classList.contains('hidden')) renderCriterios();
+        }).catch(e=>{
+          renderAjustes();
+          toast('No se pudo guardar el orden de grupos: '+(e&&e.message?e.message:'error de guardado'));
+        });
+      }
+      document.addEventListener('pointermove', onMove);
+      document.addEventListener('pointerup', onUp, {once:true});
+    });
+  });
+}
+
+function renderAjustes(){
+  const arbitros = state.referees.filter(r=>r.colectivo==='arbitro');
+  const oficiales = state.referees.filter(r=>r.colectivo==='oficial');
+
+  document.getElementById('aj-lista-arbitros').innerHTML = arbitros.length
+    ? arbitros.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'})).map(personaListHtml).join('')
+    : `<div class="empty">Todavía no hay árbitros dados de alta.</div>`;
+
+  document.getElementById('aj-lista-oficiales').innerHTML = oficiales.length
+    ? oficiales.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'})).map(personaListHtml).join('')
+    : `<div class="empty">Todavía no hay oficiales dados de alta.</div>`;
+
+  document.getElementById('aj-lista-formadores').innerHTML = state.formadores.length
+    ? state.formadores.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'})).map(f=>`
+      <div class="list-item">
+        <span>${f.nombre} <span class="badge">${COLECTIVO_LABEL[f.colectivo||'arbitro']}</span> <span class="badge">PIN: ${f.pin}</span>
+          <label class="chk-inline" style="margin-left:6px;"><input type="checkbox" data-pron-form="${f.id}" ${f.puedePronostico?'checked':''}> Pronóstico</label>
+        </span>
+        <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
+          <button class="btn secondary" data-edit-form-nombre="${f.id}">Editar nombre</button>
+          <button class="btn secondary" data-regen-form="${f.id}">Regenerar PIN</button>
+          <button class="btn danger" data-del-form="${f.id}">Eliminar</button>
+        </div>
+      </div>`).join('')
+    : `<div class="empty">Todavía no hay formadores dados de alta.</div>`;
+
+  document.getElementById('aj-criterio-grupo').innerHTML = grupoOptions('arbitro');
+  document.getElementById('aj-criterio-of-grupo').innerHTML = grupoOptions('oficial');
+  document.getElementById('aj-criterio-grupo-nuevo').classList.toggle('hidden', document.getElementById('aj-criterio-grupo').value !== '__nuevo__');
+  document.getElementById('aj-criterio-of-grupo-nuevo').classList.toggle('hidden', document.getElementById('aj-criterio-of-grupo').value !== '__nuevo__');
+
+  document.getElementById('aj-lista-catpartido').innerHTML = state.categoriasPartido.map(c=>`
+    <div class="list-item">
+      <span>${c.nombre}<span class="meta">${c.sinGenero?'Sen selector de xénero':'Con selector de xénero'}</span></span>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button class="btn secondary" data-edit-catp="${c.id}">Editar</button>
+        <button class="btn danger" data-del-catp="${c.id}">Eliminar</button>
+      </div>
+    </div>
+    <div class="edit-form hidden" id="edit-catp-${c.id}"></div>
+  `).join('');
+
+  const critArbitro = state.criterios.filter(c=>(c.colectivo||'arbitro')==='arbitro');
+  const critOficial = state.criterios.filter(c=>c.colectivo==='oficial');
+  document.getElementById('aj-lista-criterios').innerHTML = critArbitro.length
+    ? criteriosAgrupadosHtml(critArbitro, 'arbitro')
+    : `<div class="empty">No hay ítems de árbitros.</div>`;
+  document.getElementById('aj-lista-criterios-of').innerHTML = critOficial.length
+    ? criteriosAgrupadosHtml(critOficial, 'oficial')
+    : `<div class="empty">Aínda non hai ítems de oficiais de mesa. Engade o primeiro arriba.</div>`;
+  activarArrastreCriterios('aj-lista-criterios', 'arbitro');
+  activarArrastreGrupos('aj-lista-criterios', 'arbitro');
+  activarArrastreGrupos('aj-lista-criterios-of', 'oficial');
+  activarArrastreCriterios('aj-lista-criterios-of', 'oficial');
+
+  document.querySelectorAll('[data-del-ref]').forEach(b=>b.addEventListener('click', async ()=>{
+    const ref = state.referees.find(r=>r.id===b.dataset.delRef);
+    const ok = await showConfirm(`¿Eliminar a ${ref.nombre}? No se puede deshacer.`, 'Eliminar');
+    if(!ok) return;
+    const copiaAntes = state.referees;
+    state.referees = state.referees.filter(r=>r.id!==b.dataset.delRef);
+    renderAjustes(); renderEvaluarArbitros();
+    try{
+      await saveReferees();
+      toast('Eliminado');
+    }catch(e){
+      state.referees = copiaAntes;
+      renderAjustes(); renderEvaluarArbitros();
+      toast('No se pudo eliminar: '+(e&&e.message?e.message:'error de guardado'));
+    }
+  }));
+  document.querySelectorAll('[data-regen-ref]').forEach(b=>b.addEventListener('click', async ()=>{
+    const ref = state.referees.find(r=>r.id===b.dataset.regenRef);
+    const anterior = ref.codigo;
+    ref.codigo = genCode();
+    renderAjustes();
+    try{
+      await saveReferees();
+      toast('Código regenerado: '+ref.codigo);
+    }catch(e){
+      ref.codigo = anterior;
+      renderAjustes();
+      toast('No se pudo regenerar: '+(e&&e.message?e.message:'error de guardado'));
+    }
+  }));
+  document.querySelectorAll('[data-edit-perfil-ref]').forEach(b=>b.addEventListener('click', ()=>openEditPerfilRef(b.dataset.editPerfilRef)));
+  document.querySelectorAll('[data-cat-ref]').forEach(sel=>sel.addEventListener('change', async ()=>{
+    const ref = state.referees.find(r=>r.id===sel.dataset.catRef);
+    const anterior = ref.categoria;
+    ref.categoria = sel.value;
+    renderEvaluarArbitros();
+    try{
+      await saveReferees();
+      toast(`Categoría de ${ref.nombre} actualizada a ${ref.categoria}. Los informes ya hechos conservan su categoría original.`);
+    }catch(e){
+      ref.categoria = anterior;
+      renderAjustes(); renderEvaluarArbitros();
+      toast('No se pudo actualizar la categoría: '+(e&&e.message?e.message:'error de guardado'));
+    }
+  }));
+  document.querySelectorAll('[data-edit-form-nombre]').forEach(b=>b.addEventListener('click', async ()=>{
+    const f = state.formadores.find(x=>x.id===b.dataset.editFormNombre);
+    const nuevo = await showPrompt('Nuevo nombre del formador/a:', f.nombre);
+    if(!nuevo || !nuevo.trim()) return;
+    const anterior = f.nombre;
+    f.nombre = nuevo.trim();
+    renderAjustes(); renderFormadoresSelect();
+    try{
+      await saveFormadores();
+      toast('Nombre actualizado');
+    }catch(e){
+      f.nombre = anterior;
+      renderAjustes(); renderFormadoresSelect();
+      toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado'));
+    }
+  }));
+  document.querySelectorAll('[data-pron-form]').forEach(chk=>chk.addEventListener('change', async ()=>{
+    const f = state.formadores.find(x=>x.id===chk.dataset.pronForm);
+    f.puedePronostico = chk.checked;
+    try{
+      await saveFormadores();
+      toast(`${f.nombre}: pronóstico ${chk.checked?'activado':'desactivado'}`);
+    }catch(e){
+      f.puedePronostico = !chk.checked;
+      chk.checked = f.puedePronostico;
+      toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado'));
+    }
+  }));
+  document.querySelectorAll('[data-del-form]').forEach(b=>b.addEventListener('click', async ()=>{
+    const f = state.formadores.find(x=>x.id===b.dataset.delForm);
+    const ok = await showConfirm(`¿Eliminar a ${f.nombre}? No se puede deshacer.`, 'Eliminar');
+    if(!ok) return;
+    const copiaAntes = state.formadores;
+    state.formadores = state.formadores.filter(x=>x.id!==b.dataset.delForm);
+    renderAjustes(); renderFormadoresSelect();
+    try{
+      await saveFormadores();
+      toast('Formador eliminado');
+    }catch(e){
+      state.formadores = copiaAntes;
+      renderAjustes(); renderFormadoresSelect();
+      toast('No se pudo eliminar: '+(e&&e.message?e.message:'error de guardado'));
+    }
+  }));
+  document.querySelectorAll('[data-regen-form]').forEach(b=>b.addEventListener('click', async ()=>{
+    const f = state.formadores.find(x=>x.id===b.dataset.regenForm);
+    const anterior = f.pin;
+    f.pin = genPin();
+    renderAjustes();
+    try{
+      await saveFormadores();
+      toast('PIN regenerado: '+f.pin);
+    }catch(e){
+      f.pin = anterior;
+      renderAjustes();
+      toast('No se pudo regenerar: '+(e&&e.message?e.message:'error de guardado'));
+    }
+  }));
+  document.querySelectorAll('[data-del-catp]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(state.categoriasPartido.length<=1){ toast('Debe quedar al menos una categoría'); return; }
+    const cat = state.categoriasPartido.find(c=>c.id===b.dataset.delCatp);
+    const ok = await showConfirm(`¿Eliminar la categoría "${cat.nombre}"? No se puede deshacer.`, 'Eliminar');
+    if(!ok) return;
+    const copiaAntes = state.categoriasPartido;
+    state.categoriasPartido = state.categoriasPartido.filter(c=>c.id!==b.dataset.delCatp);
+    renderAjustes(); renderCategoriasPartidoSelect();
+    try{
+      await saveCategoriasPartido();
+      toast('Categoría eliminada');
+    }catch(e){
+      state.categoriasPartido = copiaAntes;
+      renderAjustes(); renderCategoriasPartidoSelect();
+      toast('No se pudo eliminar: '+(e&&e.message?e.message:'error de guardado'));
+    }
+  }));
+  document.querySelectorAll('[data-edit-catp]').forEach(b=>b.addEventListener('click', ()=>openEditCatPartido(b.dataset.editCatp)));
+  document.querySelectorAll('[data-del-crit]').forEach(b=>b.addEventListener('click', async ()=>{
+    const idBorrar = b.dataset.delCrit;
+    const item = state.criterios.find(c=>c.id===idBorrar);
+    const hermanos = state.criterios.filter(c=>(c.colectivo||'arbitro')===(item.colectivo||'arbitro'));
+    if(hermanos.length<=1){ toast('Debe quedar al menos un ítem para este colectivo'); return; }
+    const ok = await showConfirm(`¿Eliminar el ítem "${item.label}"? No se puede deshacer.`, 'Eliminar');
+    if(!ok) return;
+    const copiaAntes = state.criterios;
+    state.criterios = state.criterios.filter(c=>c.id!==idBorrar);
+    // Repintamos ya mismo, sen esperar á rede: así o botón responde ao instante
+    // e non parece que "non pasou nada" mentres se garda en segundo plano.
+    renderAjustes(); renderCriterios();
+    try{
+      await saveCriterios();
+      toast('Ítem eliminado');
+    }catch(e){
+      state.criterios = copiaAntes;
+      renderAjustes(); renderCriterios();
+      toast('No se pudo eliminar: '+(e&&e.message?e.message:'error de guardado')+'. Inténtalo otra vez.');
+    }
+  }));
+  document.querySelectorAll('[data-edit-crit]').forEach(b=>b.addEventListener('click', ()=>openEditCriterio(b.dataset.editCrit)));
+}
+
+let editOpciones = [];
+function openEditCriterio(id){
+  const wrap = document.getElementById('edit-'+id);
+  if(!wrap.classList.contains('hidden')){ wrap.classList.add('hidden'); wrap.innerHTML=''; return; }
+  document.querySelectorAll('.edit-form').forEach(w=>{ w.classList.add('hidden'); w.innerHTML=''; });
+  const c = state.criterios.find(x=>x.id===id);
+  editOpciones = (c.opciones||[]).slice().sort((a,b)=>b.valor-a.valor).map(o=>({...o}));
+  const esOficial = (c.colectivo||'arbitro')==='oficial';
+  wrap.innerHTML = `
+    <label>Nome do ítem</label>
+    <input type="text" id="ef-label-${id}" value="${esc(c.label)}">
+    <label>Grupo</label>
+    <input type="text" id="ef-grupo-${id}" value="${esc(c.grupo)}">
+    <label>Tipo de resposta</label>
+    <select id="ef-tipo-${id}">
+      <option value="opciones" ${c.tipo!=='texto'?'selected':''}>Semáforo (opcións de cor)</option>
+      <option value="texto" ${c.tipo==='texto'?'selected':''}>Texto libre</option>
+    </select>
+    <div class="erow">
+      <label class="chk-inline"><input type="checkbox" id="ef-na-${id}" ${c.permiteNA?'checked':''}> Admite "Non aplica"</label>
+      <label class="chk-inline"><input type="checkbox" id="ef-nomedia-${id}" ${c.incluirMedia===false?'checked':''}> Non contar na media</label>
+    </div>
+    <label style="margin-top:12px;">Peso na media (1 = normal, 2 = pesa o dobre, 0.5 = pesa a metade...)</label>
+    <input type="number" id="ef-peso-${id}" min="0.1" step="0.1" value="${c.peso||1}">
+    ${esOficial?`
+    <label class="chk-inline" style="margin-top:10px;"><input type="checkbox" id="ef-solof-${id}" ${c.soloFormadores?'checked':''}> Só visible para formadores/admin (o oficial nunca o ve)</label>
+    <label style="margin-top:12px;">Funcións ás que aplica (ningunha marcada = todas)</label>
+    <div class="erow">
+      ${FUNCIONES_OFICIAL.map(f=>`<label class="chk-inline"><input type="checkbox" data-ef-func="${f.key}" ${c.funciones&&c.funciones.includes(f.key)?'checked':''}> ${f.label}</label>`).join('')}
+    </div>` : ''}
+    <div id="ef-opciones-wrap-${id}">
+      <label style="margin-top:12px;">Opcións do semáforo (2 a 4, de mellor a peor)</label>
+      <div id="ef-opciones-${id}"></div>
+      <button class="btn secondary" id="ef-add-opcion-${id}" style="margin-top:8px;">+ Engadir opción</button>
+      <label class="chk-inline" style="margin-top:10px;"><input type="checkbox" id="ef-textoboton-${id}" ${c.textoEnBoton?'checked':''}> Mostrar o texto dentro do recadro de cor (en vez de lenda debaixo)</label>
+      <p class="note">O valor (1-9) decide a cor e o peso na media; a etiqueta é o texto que verán os formadores.</p>
+    </div>
+    <div class="erow">
+      <button class="btn small" id="ef-save-${id}">Guardar</button>
+      <button class="btn secondary" id="ef-cancel-${id}">Cancelar</button>
+    </div>
+  `;
+  wrap.classList.remove('hidden');
+
+  function syncTipoVisibility(){
+    document.getElementById(`ef-opciones-wrap-${id}`).classList.toggle('hidden', document.getElementById(`ef-tipo-${id}`).value==='texto');
+  }
+  document.getElementById(`ef-tipo-${id}`).addEventListener('change', syncTipoVisibility);
+  syncTipoVisibility();
+
+  function renderOpcionesEditor(){
+    document.getElementById(`ef-opciones-${id}`).innerHTML = editOpciones.map((o,i)=>`
+      <div class="row" style="margin-top:6px;align-items:center;">
+        <input type="text" data-op-etq="${i}" value="${esc(o.etiqueta)}" placeholder="Etiqueta" style="flex:2;">
+        <input type="number" data-op-val="${i}" value="${o.valor}" min="1" max="9" style="flex:0 0 60px;">
+        <button class="btn danger" data-op-del="${i}" style="flex:0 0 auto;padding:8px 12px;margin:0;">✕</button>
+      </div>
+    `).join('');
+    document.querySelectorAll(`#ef-opciones-${id} [data-op-etq]`).forEach(inp=>inp.addEventListener('input', e=>{
+      editOpciones[+e.target.dataset.opEtq].etiqueta = e.target.value;
+    }));
+    document.querySelectorAll(`#ef-opciones-${id} [data-op-val]`).forEach(inp=>inp.addEventListener('input', e=>{
+      editOpciones[+e.target.dataset.opVal].valor = Number(e.target.value)||1;
+    }));
+    document.querySelectorAll(`#ef-opciones-${id} [data-op-del]`).forEach(btn=>btn.addEventListener('click', ()=>{
+      if(editOpciones.length<=2){ toast('Debe haber al menos 2 opciones'); return; }
+      editOpciones.splice(+btn.dataset.opDel,1);
+      renderOpcionesEditor();
+    }));
+  }
+  if(!editOpciones.length) editOpciones = OPCIONES_ESTANDAR.map(o=>({...o}));
+  renderOpcionesEditor();
+
+  document.getElementById(`ef-add-opcion-${id}`).addEventListener('click', ()=>{
+    if(editOpciones.length>=4){ toast('Máximo 4 opciones'); return; }
+    editOpciones.push({valor:5, etiqueta:'Nova opción'});
+    renderOpcionesEditor();
+  });
+
+  document.getElementById(`ef-save-${id}`).addEventListener('click', async ()=>{
+    const tipo = document.getElementById(`ef-tipo-${id}`).value;
+    if(tipo==='opciones' && editOpciones.length<2){ toast('Debe haber al menos 2 opciones'); return; }
+    const item = state.criterios.find(x=>x.id===id);
+    const antes = JSON.parse(JSON.stringify(item));
+    item.label = document.getElementById(`ef-label-${id}`).value.trim() || item.label;
+    item.grupo = document.getElementById(`ef-grupo-${id}`).value.trim() || item.grupo;
+    item.tipo = tipo;
+    item.permiteNA = document.getElementById(`ef-na-${id}`).checked;
+    item.incluirMedia = !document.getElementById(`ef-nomedia-${id}`).checked;
+    item.peso = Number(document.getElementById(`ef-peso-${id}`).value) || 1;
+    if(item.peso<=0) item.peso = 1;
+    item.opciones = tipo==='texto' ? [] : editOpciones.map(o=>({valor:Number(o.valor)||1, etiqueta:(o.etiqueta||'').trim()||'—'}));
+    item.textoEnBoton = tipo==='texto' ? false : document.getElementById(`ef-textoboton-${id}`).checked;
+    if(esOficial){
+      item.soloFormadores = document.getElementById(`ef-solof-${id}`).checked;
+      item.funciones = [...document.querySelectorAll(`[data-ef-func]:checked`)].map(c=>c.dataset.efFunc);
+    }
+    // Repintamos ya mismo, sin esperar a la red: el botón responde al instante
+    // y se guarda en segundo plano.
+    renderAjustes(); renderCriterios();
+    try{
+      await saveCriterios();
+      toast('Ítem actualizado');
+    }catch(e){
+      Object.assign(item, antes);
+      renderAjustes(); renderCriterios();
+      toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado')+'. Inténtalo otra vez.');
+    }
+  });
+  document.getElementById(`ef-cancel-${id}`).addEventListener('click', ()=>{ wrap.classList.add('hidden'); wrap.innerHTML=''; });
+}
+
+function openEditPerfilRef(id){
+  const wrap = document.getElementById('edit-perfil-ref-'+id);
+  if(!wrap.classList.contains('hidden')){ wrap.classList.add('hidden'); wrap.innerHTML=''; return; }
+  document.querySelectorAll('.edit-form').forEach(w=>{ w.classList.add('hidden'); w.innerHTML=''; });
+  const r = state.referees.find(x=>x.id===id);
+  wrap.innerHTML = `
+    <label>Nome</label>
+    <input type="text" id="epr-nombre-${id}" value="${esc(r.nombre)}">
+    <div class="row">
+      <div>
+        <label>Data de nacemento</label>
+        <input type="date" id="epr-nac-${id}" value="${r.fechaNacimiento||''}">
+      </div>
+      <div>
+        <label>Data de alta no comité</label>
+        <input type="date" id="epr-alta-${id}" value="${r.fechaAlta||''}">
+      </div>
+    </div>
+    <p class="note">A idade e as tempadas activo (setembro-xuño) calcúlanse soas a partir destas datas.</p>
+    <div class="erow">
+      <button class="btn small" id="epr-save-${id}">Guardar</button>
+      <button class="btn secondary" id="epr-cancel-${id}">Cancelar</button>
+    </div>
+  `;
+  wrap.classList.remove('hidden');
+  document.getElementById(`epr-save-${id}`).addEventListener('click', async ()=>{
+    const antes = {nombre:r.nombre, fechaNacimiento:r.fechaNacimiento, fechaAlta:r.fechaAlta};
+    r.nombre = document.getElementById(`epr-nombre-${id}`).value.trim() || r.nombre;
+    r.fechaNacimiento = document.getElementById(`epr-nac-${id}`).value || null;
+    r.fechaAlta = document.getElementById(`epr-alta-${id}`).value || null;
+    renderAjustes(); renderEvaluarArbitros();
+    try{
+      await saveReferees();
+      toast('Perfil actualizado');
+    }catch(e){
+      Object.assign(r, antes);
+      renderAjustes(); renderEvaluarArbitros();
+      toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado'));
+    }
+  });
+  document.getElementById(`epr-cancel-${id}`).addEventListener('click', ()=>{ wrap.classList.add('hidden'); wrap.innerHTML=''; });
+}
+
+function openEditCatPartido(id){
+  const wrap = document.getElementById('edit-catp-'+id);
+  if(!wrap.classList.contains('hidden')){ wrap.classList.add('hidden'); wrap.innerHTML=''; return; }
+  document.querySelectorAll('.edit-form').forEach(w=>{ w.classList.add('hidden'); w.innerHTML=''; });
+  const c = state.categoriasPartido.find(x=>x.id===id);
+  wrap.innerHTML = `
+    <label>Nome</label>
+    <input type="text" id="ecp-nombre-${id}" value="${esc(c.nombre)}">
+    <label class="chk-inline" style="margin-top:10px;"><input type="checkbox" id="ecp-sg-${id}" ${c.sinGenero?'checked':''}> Non precisa selector de xénero (xa vén no nome)</label>
+    <div class="erow">
+      <button class="btn small" id="ecp-save-${id}">Guardar</button>
+      <button class="btn secondary" id="ecp-cancel-${id}">Cancelar</button>
+    </div>
+  `;
+  wrap.classList.remove('hidden');
+  document.getElementById(`ecp-save-${id}`).addEventListener('click', async ()=>{
+    const antes = {nombre:c.nombre, sinGenero:c.sinGenero};
+    c.nombre = document.getElementById(`ecp-nombre-${id}`).value.trim() || c.nombre;
+    c.sinGenero = document.getElementById(`ecp-sg-${id}`).checked;
+    renderAjustes(); renderCategoriasPartidoSelect();
+    try{
+      await saveCategoriasPartido();
+      toast('Categoría actualizada');
+    }catch(e){
+      Object.assign(c, antes);
+      renderAjustes(); renderCategoriasPartidoSelect();
+      toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado'));
+    }
+  });
+  document.getElementById(`ecp-cancel-${id}`).addEventListener('click', ()=>{ wrap.classList.add('hidden'); wrap.innerHTML=''; });
+}
+
+document.getElementById('aj-add-catpartido').addEventListener('click', async ()=>{
+  const nombre = document.getElementById('aj-catpartido-nombre').value.trim();
+  if(!nombre){ toast('Escribe el nombre de la categoría'); return; }
+  const nueva = {id:uid(), nombre, sinGenero:false};
+  state.categoriasPartido.push(nueva);
+  document.getElementById('aj-catpartido-nombre').value='';
+  renderAjustes(); renderCategoriasPartidoSelect();
+  try{
+    await saveCategoriasPartido();
+    toast('Categoría añadida');
+  }catch(e){
+    state.categoriasPartido = state.categoriasPartido.filter(c=>c.id!==nueva.id);
+    renderAjustes(); renderCategoriasPartidoSelect();
+    toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado'));
+  }
+});
+
+document.getElementById('aj-criterio-grupo').addEventListener('change', (e)=>{
+  document.getElementById('aj-criterio-grupo-nuevo').classList.toggle('hidden', e.target.value !== '__nuevo__');
+});
+document.getElementById('aj-criterio-of-grupo').addEventListener('change', (e)=>{
+  document.getElementById('aj-criterio-of-grupo-nuevo').classList.toggle('hidden', e.target.value !== '__nuevo__');
+});
+
+document.getElementById('aj-add-arbitro').addEventListener('click', async ()=>{
+  const nombre = document.getElementById('aj-arbitro-nombre').value.trim();
+  const categoria = document.getElementById('aj-arbitro-cat').value;
+  if(!nombre){ toast('Escribe el nombre del árbitro'); return; }
+  const nuevo = {id:uid(), nombre, categoria, colectivo:'arbitro', codigo:genCode()};
+  state.referees.push(nuevo);
+  document.getElementById('aj-arbitro-nombre').value='';
+  renderAjustes(); renderEvaluarArbitros();
+  try{
+    await saveReferees();
+    toast('Árbitro añadido');
+  }catch(e){
+    state.referees = state.referees.filter(r=>r.id!==nuevo.id);
+    renderAjustes(); renderEvaluarArbitros();
+    toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado'));
+  }
+});
+
+document.getElementById('aj-add-oficial').addEventListener('click', async ()=>{
+  const nombre = document.getElementById('aj-oficial-nombre').value.trim();
+  const categoria = document.getElementById('aj-oficial-cat').value;
+  if(!nombre){ toast('Escribe el nombre del oficial'); return; }
+  const nuevo = {id:uid(), nombre, categoria, colectivo:'oficial', codigo:genCode()};
+  state.referees.push(nuevo);
+  document.getElementById('aj-oficial-nombre').value='';
+  renderAjustes(); renderEvaluarArbitros();
+  try{
+    await saveReferees();
+    toast('Oficial añadido');
+  }catch(e){
+    state.referees = state.referees.filter(r=>r.id!==nuevo.id);
+    renderAjustes(); renderEvaluarArbitros();
+    toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado'));
+  }
+});
+
+document.getElementById('aj-add-formador').addEventListener('click', async ()=>{
+  const nombre = document.getElementById('aj-formador-nombre').value.trim();
+  const colectivo = document.getElementById('aj-formador-col').value;
+  if(!nombre){ toast('Escribe el nombre del formador'); return; }
+  const nuevo = {id:uid(), nombre, pin:genPin(), colectivo};
+  state.formadores.push(nuevo);
+  document.getElementById('aj-formador-nombre').value='';
+  renderAjustes(); renderFormadoresSelect();
+  try{
+    await saveFormadores();
+    toast('Formador añadido');
+  }catch(e){
+    state.formadores = state.formadores.filter(f=>f.id!==nuevo.id);
+    renderAjustes(); renderFormadoresSelect();
+    toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado'));
+  }
+});
+
+function crearCriterioDesdeForm(colectivo, prefijo){
+  const label = document.getElementById(`${prefijo}-nombre`).value.trim();
+  let grupo = document.getElementById(`${prefijo}-grupo`).value;
+  if(grupo === '__nuevo__'){ grupo = document.getElementById(`${prefijo}-grupo-nuevo`).value.trim(); }
+  if(!label){ toast('Escribe el nombre del ítem'); return false; }
+  if(!grupo){ toast('Indica el grupo del ítem'); return false; }
+  const permiteNA = document.getElementById(`${prefijo}-na`).checked;
+  const incluirMedia = !document.getElementById(`${prefijo}-nomedia`).checked;
+  state.criterios.push({id:uid(), label, grupo, permiteNA, incluirMedia, colectivo, tipo:'opciones', funciones:[], soloFormadores:false, peso:1, textoEnBoton:false, opciones: OPCIONES_ESTANDAR.map(o=>({...o}))});
+  document.getElementById(`${prefijo}-nombre`).value='';
+  document.getElementById(`${prefijo}-grupo-nuevo`).value='';
+  document.getElementById(`${prefijo}-na`).checked=false;
+  document.getElementById(`${prefijo}-nomedia`).checked=false;
+  return true;
+}
+
+document.getElementById('aj-add-criterio').addEventListener('click', async ()=>{
+  if(!crearCriterioDesdeForm('arbitro','aj-criterio')) return;
+  await saveCriterios();
+  renderAjustes(); renderCriterios();
+  toast('Ítem añadido');
+});
+
+document.getElementById('aj-add-criterio-of').addEventListener('click', async ()=>{
+  if(!crearCriterioDesdeForm('oficial','aj-criterio-of')) return;
+  await saveCriterios();
+  renderAjustes(); renderCriterios();
+  toast('Ítem añadido');
+});
+
+document.getElementById('aj-restaurar-oficial').addEventListener('click', async ()=>{
+  const n = mergeDefaultsOficial();
+  if(n===0){ toast('Ya tienes todos los ítems predeterminados. No falta ninguno.'); return; }
+  await saveCriterios();
+  renderAjustes(); renderCriterios();
+  toast(`Se han añadido ${n} ítem${n===1?'':'s'} que faltaban.`);
+});
+
+// ---------- INIT ----------
+const cargaInicial = (async function init(){
+  document.getElementById('ev-fecha').value = todayStr();
+  const aviso = document.getElementById('login-estado');
+  try{
+    await loadAll();
+    aviso.classList.add('hidden');
+  }catch(e){
+    aviso.textContent = 'No se pudo conectar con la base de datos: '+(e&&e.message?e.message:'error desconocido')+'. Recarga la página para intentarlo de nuevo.';
+    aviso.classList.remove('hidden');
+    aviso.classList.add('banner-warn');
+    throw e;
+  }
+  renderEvaluarArbitros();
+  renderFormadoresSelect();
+  renderCategoriasPartidoSelect();
+  renderCriterios();
+})();
+cargaInicial.catch(()=>{});
+</script>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getFirestore, doc, collection, getDoc, getDocs, writeBatch, deleteField } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+try{
+  if(!FIREBASE_CONFIG.projectId || String(FIREBASE_CONFIG.apiKey).startsWith('PEGA_')) throw new Error('Falta pegar la configuración de Firebase en el código');
+  const app = initializeApp(FIREBASE_CONFIG);
+  const db = getFirestore(app);
+  window.__fbInit({ db, doc, collection, getDoc, getDocs, writeBatch, deleteField });
+}catch(e){ window.__fbFail(e); }
+</script>
+</body>
+</html>
