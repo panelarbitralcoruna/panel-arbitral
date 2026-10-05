@@ -82,7 +82,7 @@
   .card h2{ font-size:15px; margin:0 0 12px 0; color:var(--text-dim); font-weight:500; }
   label{ display:block; font-size:12px; color:var(--text-dim); margin-bottom:4px; margin-top:12px; font-weight:500; }
   label:first-child{ margin-top:0; }
-  input[type=text], input[type=date], select, textarea{ width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:10px; border-radius:var(--radius); font-family:'Inter',sans-serif; font-size:14px; }
+  input[type=text], input[type=email], input[type=password], input[type=number], input[type=date], select, textarea{ width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:10px; border-radius:var(--radius); font-family:'Inter',sans-serif; font-size:14px; }
   textarea{ min-height:56px; resize:vertical; }
   input:focus, select:focus, textarea:focus, button:focus-visible{ outline:2px solid var(--cyan); outline-offset:1px; }
 
@@ -216,6 +216,7 @@
   .login-card h3{ font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.04em; font-size:15px; margin:0 0 4px 0; }
   .login-card p{ font-size:12px; color:var(--text-dim); margin:0 0 14px 0; }
   .login-card input{ text-align:center; margin-bottom:10px; }
+  .login-link{ background:none; border:none; color:var(--cyan); font-size:11px; cursor:pointer; margin-top:8px; padding:0; }
 
   .hidden{ display:none !important; }
   .note{ font-size:11px; color:var(--text-dim); margin-top:10px; line-height:1.5; }
@@ -252,17 +253,21 @@
       <div class="login-card">
         <h3>Técnico</h3>
         <p>Consulta todos os informes</p>
-        <input type="password" id="login-tecnico-pin" inputmode="numeric" placeholder="O teu PIN persoal">
+        <input type="email" id="login-tecnico-email" autocomplete="username" placeholder="O teu email">
+        <input type="password" id="login-tecnico-pass" autocomplete="current-password" placeholder="Contrasinal">
         <button class="btn secondary" id="login-tecnico-btn" style="width:100%;">Entrar</button>
+        <button type="button" class="login-link" id="login-olvido">Esqueciches o contrasinal?</button>
       </div>
       <div class="login-card">
         <h3>Administrador</h3>
         <p>Acceso completo e configuración</p>
+        <input type="email" id="login-admin-email" autocomplete="username" placeholder="Email">
+        <input type="password" id="login-admin-pass" autocomplete="current-password" placeholder="Contrasinal">
         <input type="password" id="login-admin-pin" inputmode="numeric" placeholder="PIN de administrador">
         <button class="btn secondary" id="login-admin-btn" style="width:100%;">Entrar</button>
       </div>
     </div>
-    <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:20px;">Versión del código: 2026-10-05 · rev. firebase</p>
+    <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:20px;">Versión del código: 2026-10-05 · rev. cuentas-tecnicos</p>
     <p id="login-estado" style="text-align:center;font-size:12px;color:var(--text-dim);margin-top:10px;">Conectando con la base de datos…</p>
   </div>
 </div>
@@ -461,7 +466,7 @@
         <input type="password" id="aj-pin-admin" placeholder="Nuevo PIN admin" maxlength="8">
         <button class="btn small" id="aj-pin-admin-guardar">Guardar</button>
       </div>
-      <p class="note">Por defecto: 9999. Cámbialo y compártelo solo con quien corresponda. Cada técnico tiene ahora su propio PIN personal (ver más abajo, en Formadores). No es cifrado real, solo evita accesos accidentales o curiosos.</p>
+      <p class="note">Para entrar como administrador hace falta una cuenta de Firebase (email y contraseña) y además este PIN. Cada técnico entra con su propia cuenta: crea la cuenta en Firebase (Authentication), añade su email en las reglas de Firestore y escríbelo aquí abajo, en Formadores. Solo las cuentas autorizadas pueden guardar cambios.</p>
     </div>
 
     <div class="card">
@@ -544,6 +549,7 @@
       <h2>Formadores</h2>
       <div class="row">
         <input type="text" id="aj-formador-nombre" placeholder="Nombre del formador/a">
+        <input type="email" id="aj-formador-email" placeholder="Email de su cuenta">
         <select id="aj-formador-col" style="max-width:150px;">
           <option value="arbitro">De árbitros</option>
           <option value="oficial">De oficiales de mesa</option>
@@ -954,7 +960,7 @@ function conTimeout(p, ms, msg){
 function errorAmigable(e){
   const code = String((e && e.code) || '');
   if(code.includes('resource-exhausted')) return new Error('Se alcanzó el límite diario gratuito de Firebase. Inténtalo de nuevo a partir de las 9:00');
-  if(code.includes('permission-denied')) return new Error('Firebase rechazó la operación (revisa las reglas de seguridad)');
+  if(code.includes('permission-denied')) return new Error('Tu cuenta no tiene permiso para guardar cambios (pide al administrador que la autorice en las reglas)');
   if(code.includes('unavailable')) return new Error('Sin conexión con el servidor');
   return e instanceof Error ? e : new Error(String(e));
 }
@@ -977,6 +983,7 @@ async function leerColeccion(col){
 async function escribir(ops){
   if(!ops.length) return;
   const f = await fbReady;
+  if(!f.auth.currentUser) throw new Error('Solo el personal con sesión iniciada puede guardar cambios');
   const conv = v => {
     if(v===DEL) return f.deleteField();
     if(v && typeof v==='object' && !Array.isArray(v)){ const o={}; Object.keys(v).forEach(k=>{ o[k]=conv(v[k]); }); return o; }
@@ -1066,7 +1073,8 @@ async function loadAll(){
   await cargarReferees();
   state.evaluations = [];
   sync.evals = {};
-  await migrarTodoYGuardar();
+  // Sin sesión de personal no se puede escribir: solo se prepara en memoria.
+  await migrarTodoYGuardar({sinGuardar:true});
 }
 
 async function getAdminPin(){
@@ -1077,7 +1085,7 @@ async function setAdminPin(v){
   await escribir([{col:'config', id:'seguridad', data:{pinAdmin:v}}]);
 }
 
-async function migrarTodoYGuardar(){
+async function migrarTodoYGuardar(opciones){
   // Criterios: garantiza que cada ítem tenga la forma correcta (opciones/tipo/funciones/peso).
   // Nunca se añade nada de oficiales aquí en automático: ni al cargar ni al restaurar una copia,
   // para no pisar borrados ni ediciones del administrador. Para rellenar ítems que falten a
@@ -1091,10 +1099,11 @@ async function migrarTodoYGuardar(){
     if(!r.colectivo){ r.colectivo = 'arbitro'; }
   });
 
-  // Formadores: PIN y colectivo por defecto
+  // Formadores: colectivo por defecto. Los PIN de técnicos ya no se usan (entran con su cuenta).
   state.formadores = state.formadores || [];
   state.formadores.forEach(f=>{
-    if(!f.pin){ f.pin = genPin(); }
+    if('pin' in f) delete f.pin;
+    if(f.email) f.email = String(f.email).trim().toLowerCase();
     if(!f.colectivo){ f.colectivo = 'arbitro'; }
   });
 
@@ -1128,6 +1137,7 @@ async function migrarTodoYGuardar(){
   state.grupoOrden.arbitro = state.grupoOrden.arbitro || [];
   state.grupoOrden.oficial = state.grupoOrden.oficial || [];
 
+  if(opciones && opciones.sinGuardar) return [];
   const bloques = [
     {clave:'criterios', nombre:'ítems del cuestionario', valor:()=>state.criterios, guardar:saveCriterios},
     {clave:'referees', nombre:'árbitros y oficiales', valor:()=>state.referees, guardar:saveReferees},
@@ -1270,13 +1280,19 @@ function enterApp(){
   }
 }
 
+function limpiarLogin(){
+  ['login-arbitro-codigo','login-tecnico-email','login-tecnico-pass','login-admin-email','login-admin-pass','login-admin-pin']
+    .forEach(id=>{ document.getElementById(id).value=''; });
+}
+async function cerrarSesionFirebase(){
+  try{ const f = await fbReady; if(f.auth.currentUser) await f.signOut(f.auth); }catch(e){}
+}
 function salir(){
   session = { role:null, refId:null, colectivo:'arbitro' };
+  cerrarSesionFirebase();
   document.getElementById('app-shell').classList.add('hidden');
   document.getElementById('login-screen').classList.remove('hidden');
-  document.getElementById('login-arbitro-codigo').value='';
-  document.getElementById('login-tecnico-pin').value='';
-  document.getElementById('login-admin-pin').value='';
+  limpiarLogin();
 }
 document.getElementById('btn-logout').addEventListener('click', salir);
 
@@ -1288,6 +1304,32 @@ async function refrescarFormadores(){
   if(g && typeof g.formadores==='string'){ state.formadores = parseOr(g.formadores, []); sync.general.formadores = g.formadores; }
 }
 
+function errorAuth(e){
+  const code = String((e && e.code) || '');
+  if(/invalid-credential|wrong-password|user-not-found|invalid-email|invalid-login/.test(code)) return new Error('Email o contraseña incorrectos');
+  if(code.includes('too-many-requests')) return new Error('Demasiados intentos fallidos. Espera unos minutos');
+  if(code.includes('user-disabled')) return new Error('Esta cuenta está desactivada');
+  if(code.includes('network-request-failed')) return new Error('Sin conexión con el servidor');
+  return e instanceof Error ? e : new Error(String(e));
+}
+// Inicia sesión en Firebase con la cuenta del técnico/administrador.
+// La sesión dura mientras la pestaña esté abierta (no queda guardada en ordenadores compartidos).
+async function iniciarSesionPersonal(email, pass){
+  const f = await fbReady;
+  try{
+    await f.setPersistence(f.auth, f.browserSessionPersistence);
+    const cred = await conTimeout(f.signInWithEmailAndPassword(f.auth, email, pass), 20000, 'Sin conexión con el servidor');
+    return cred.user;
+  }catch(e){ throw errorAuth(e); }
+}
+async function prepararSesionPersonal(){
+  await refrescarReferees();
+  await refrescarFormadores();
+  await cargarDatosSesion();
+  // Con la sesión iniciada ya se pueden guardar los ajustes automáticos pendientes (si los hay).
+  await migrarTodoYGuardar();
+}
+
 // Evita dobles clics mientras se comprueba el acceso y se cargan los datos.
 let entrando = false;
 async function intentarEntrar(fn){
@@ -1297,6 +1339,7 @@ async function intentarEntrar(fn){
     await cargaInicial;
     await fn();
   }catch(e){
+    await cerrarSesionFirebase();
     toast('No se pudo entrar: '+(e&&e.message?e.message:'error de conexión'));
   }finally{ entrando = false; }
 }
@@ -1314,28 +1357,45 @@ document.getElementById('login-arbitro-btn').addEventListener('click', ()=>inten
 document.getElementById('login-arbitro-codigo').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('login-arbitro-btn').click(); });
 
 document.getElementById('login-tecnico-btn').addEventListener('click', ()=>intentarEntrar(async ()=>{
-  const pin = document.getElementById('login-tecnico-pin').value.trim();
-  if(!pin){ toast('Introduce tu PIN'); return; }
+  const email = document.getElementById('login-tecnico-email').value.trim().toLowerCase();
+  const pass = document.getElementById('login-tecnico-pass').value;
+  if(!email || !pass){ toast('Escribe tu email y tu contraseña'); return; }
+  const user = await iniciarSesionPersonal(email, pass);
   await refrescarFormadores();
-  const f = state.formadores.find(x=>x.pin===pin);
-  if(!f){ toast('PIN no válido'); return; }
-  await refrescarReferees();
-  await cargarDatosSesion();
+  const f = state.formadores.find(x=>(x.email||'').toLowerCase()===String(user.email||'').toLowerCase());
+  if(!f){
+    await cerrarSesionFirebase();
+    toast('Tu cuenta no está asociada a ningún formador. Pide al administrador que añada tu email en Ajustes > Formadores.');
+    return;
+  }
+  await prepararSesionPersonal();
   session = { role:'tecnico', refId:null, tecnicoId:f.id, colectivo: f.colectivo||'arbitro' };
   enterApp();
 }));
-document.getElementById('login-tecnico-pin').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('login-tecnico-btn').click(); });
+['login-tecnico-email','login-tecnico-pass'].forEach(id=>document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('login-tecnico-btn').click(); }));
+
+document.getElementById('login-olvido').addEventListener('click', async ()=>{
+  const email = (document.getElementById('login-tecnico-email').value.trim() || (await showPrompt('Escribe el email de tu cuenta y te enviaremos un enlace para cambiar la contraseña:')) || '').trim().toLowerCase();
+  if(!email) return;
+  try{
+    const f = await fbReady;
+    await f.sendPasswordResetEmail(f.auth, email);
+  }catch(e){ /* no se revela si el email existe */ }
+  toast('Si ese email tiene cuenta, recibirás un correo para cambiar la contraseña (mira también en spam).');
+});
 
 document.getElementById('login-admin-btn').addEventListener('click', ()=>intentarEntrar(async ()=>{
+  const email = document.getElementById('login-admin-email').value.trim().toLowerCase();
+  const pass = document.getElementById('login-admin-pass').value;
   const pin = document.getElementById('login-admin-pin').value.trim();
-  if(pin !== await getAdminPin()){ toast('PIN incorrecto'); return; }
-  await refrescarReferees();
-  await refrescarFormadores();
-  await cargarDatosSesion();
+  if(!email || !pass || !pin){ toast('Escribe email, contraseña y PIN de administrador'); return; }
+  await iniciarSesionPersonal(email, pass);
+  if(pin !== await getAdminPin()){ await cerrarSesionFirebase(); toast('PIN incorrecto'); return; }
+  await prepararSesionPersonal();
   session = { role:'admin', refId:null, colectivo:'arbitro' };
   enterApp();
 }));
-document.getElementById('login-admin-pin').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('login-admin-btn').click(); });
+['login-admin-email','login-admin-pass','login-admin-pin'].forEach(id=>document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('login-admin-btn').click(); }));
 
 document.querySelectorAll('.tab-btn').forEach(btn=>{
   btn.addEventListener('click', ()=> activarTab(btn.dataset.tab));
@@ -1408,12 +1468,12 @@ document.getElementById('ev-pron-descender').addEventListener('click', ()=>{ pro
 document.getElementById('ev-add-formador').addEventListener('click', async ()=>{
   const nombre = await showPrompt('Nombre del formador/a:');
   if(!nombre || !nombre.trim()) return;
-  const f = {id:uid(), nombre:nombre.trim(), pin:genPin(), colectivo:session.colectivo};
+  const f = {id:uid(), nombre:nombre.trim(), colectivo:session.colectivo};
   state.formadores.push(f);
   await saveFormadores();
   renderFormadoresSelect();
   document.getElementById('ev-formador').value = f.id;
-  toast(`Formador añadido — su PIN es ${f.pin}`);
+  toast('Formador añadido. Para que pueda entrar, añade su email en Ajustes > Formadores.');
 });
 
 function renderCategoriasPartidoSelect(){
@@ -1955,8 +2015,6 @@ function renderVistaDetalle(refId){
       </div>
       <div class="carnet-wrap">
         ${carnetFotoHtml(r)}
-        <input type="file" accept="image/*" id="vt-foto-input" class="hidden">
-        <button class="btn secondary carnet-upload-btn" id="vt-foto-btn">${r.foto?'Cambiar foto':'Subir foto'}</button>
       </div>
     </div>
   </div>`;
@@ -1984,12 +2042,6 @@ function renderVistaDetalle(refId){
   html += `<div class="card"><h2>Puntos fortes e a mellorar</h2>${renderFortalezas(evs)}</div>`;
 
   box.innerHTML = html;
-  document.getElementById('vt-foto-btn').addEventListener('click', ()=>document.getElementById('vt-foto-input').click());
-  document.getElementById('vt-foto-input').addEventListener('change', async (e)=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    await subirFotoPersona(refId, file, ()=>renderVistaDetalle(refId));
-  });
   document.querySelectorAll('[data-toggle]').forEach(head=>head.addEventListener('click', ()=>{
     head.classList.toggle('open');
     document.getElementById('body-'+head.dataset.toggle).classList.toggle('hidden');
@@ -2521,12 +2573,12 @@ function renderAjustes(){
   document.getElementById('aj-lista-formadores').innerHTML = state.formadores.length
     ? state.formadores.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'})).map(f=>`
       <div class="list-item">
-        <span>${f.nombre} <span class="badge">${COLECTIVO_LABEL[f.colectivo||'arbitro']}</span> <span class="badge">PIN: ${f.pin}</span>
+        <span>${f.nombre} <span class="badge">${COLECTIVO_LABEL[f.colectivo||'arbitro']}</span> <span class="badge">${f.email?escapeHtml(f.email):'⚠ sin email de acceso'}</span>
           <label class="chk-inline" style="margin-left:6px;"><input type="checkbox" data-pron-form="${f.id}" ${f.puedePronostico?'checked':''}> Pronóstico</label>
         </span>
         <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;">
           <button class="btn secondary" data-edit-form-nombre="${f.id}">Editar nombre</button>
-          <button class="btn secondary" data-regen-form="${f.id}">Regenerar PIN</button>
+          <button class="btn secondary" data-email-form="${f.id}">Email de acceso</button>
           <button class="btn danger" data-del-form="${f.id}">Eliminar</button>
         </div>
       </div>`).join('')
@@ -2650,18 +2702,23 @@ function renderAjustes(){
       toast('No se pudo eliminar: '+(e&&e.message?e.message:'error de guardado'));
     }
   }));
-  document.querySelectorAll('[data-regen-form]').forEach(b=>b.addEventListener('click', async ()=>{
-    const f = state.formadores.find(x=>x.id===b.dataset.regenForm);
-    const anterior = f.pin;
-    f.pin = genPin();
+  document.querySelectorAll('[data-email-form]').forEach(b=>b.addEventListener('click', async ()=>{
+    const f = state.formadores.find(x=>x.id===b.dataset.emailForm);
+    const v = await showPrompt(`Email de la cuenta de ${f.nombre} (el mismo que creaste en Firebase > Authentication):`, f.email||'');
+    if(v===null) return;
+    const email = v.trim().toLowerCase();
+    if(email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ toast('Ese email no parece válido'); return; }
+    if(email && state.formadores.some(x=>x.id!==f.id && x.email===email)){ toast('Ese email ya está asignado a otro formador'); return; }
+    const anterior = f.email;
+    if(email) f.email = email; else delete f.email;
     renderAjustes();
     try{
       await saveFormadores();
-      toast('PIN regenerado: '+f.pin);
+      toast(email ? 'Email guardado. Recuerda añadirlo también en las reglas de Firestore.' : 'Email eliminado');
     }catch(e){
-      f.pin = anterior;
+      if(anterior) f.email = anterior; else delete f.email;
       renderAjustes();
-      toast('No se pudo regenerar: '+(e&&e.message?e.message:'error de guardado'));
+      toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado'));
     }
   }));
   document.querySelectorAll('[data-del-catp]').forEach(b=>b.addEventListener('click', async ()=>{
@@ -2955,11 +3012,16 @@ document.getElementById('aj-add-oficial').addEventListener('click', async ()=>{
 
 document.getElementById('aj-add-formador').addEventListener('click', async ()=>{
   const nombre = document.getElementById('aj-formador-nombre').value.trim();
+  const email = document.getElementById('aj-formador-email').value.trim().toLowerCase();
   const colectivo = document.getElementById('aj-formador-col').value;
   if(!nombre){ toast('Escribe el nombre del formador'); return; }
-  const nuevo = {id:uid(), nombre, pin:genPin(), colectivo};
+  if(email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ toast('Ese email no parece válido'); return; }
+  if(email && state.formadores.some(x=>x.email===email)){ toast('Ese email ya está asignado a otro formador'); return; }
+  const nuevo = {id:uid(), nombre, colectivo};
+  if(email) nuevo.email = email;
   state.formadores.push(nuevo);
   document.getElementById('aj-formador-nombre').value='';
+  document.getElementById('aj-formador-email').value='';
   renderAjustes(); renderFormadoresSelect();
   try{
     await saveFormadores();
@@ -3032,11 +3094,15 @@ cargaInicial.catch(()=>{});
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getFirestore, doc, collection, getDoc, getDocs, writeBatch, deleteField } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getAuth, signInWithEmailAndPassword, signOut, setPersistence, browserSessionPersistence, sendPasswordResetEmail } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 try{
   if(!FIREBASE_CONFIG.projectId || String(FIREBASE_CONFIG.apiKey).startsWith('PEGA_')) throw new Error('Falta pegar la configuración de Firebase en el código');
   const app = initializeApp(FIREBASE_CONFIG);
   const db = getFirestore(app);
-  window.__fbInit({ db, doc, collection, getDoc, getDocs, writeBatch, deleteField });
+  const auth = getAuth(app);
+  auth.languageCode = 'es';
+  window.__fbInit({ db, doc, collection, getDoc, getDocs, writeBatch, deleteField,
+    auth, signInWithEmailAndPassword, signOut, setPersistence, browserSessionPersistence, sendPasswordResetEmail });
 }catch(e){ window.__fbFail(e); }
 </script>
 </body>
