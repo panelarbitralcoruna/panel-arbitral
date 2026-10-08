@@ -267,7 +267,7 @@
         <button class="btn secondary" id="login-admin-btn" style="width:100%;">Entrar</button>
       </div>
     </div>
-    <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:20px;">Versión del código: 2026-10-05 · rev. cuentas-tecnicos</p>
+    <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:20px;">Versión del código: 2026-10-08 · rev. asistencia-alta</p>
     <p id="login-estado" style="text-align:center;font-size:12px;color:var(--text-dim);margin-top:10px;">Conectando con la base de datos…</p>
   </div>
 </div>
@@ -774,10 +774,29 @@ function datosPerfil(r){
   if(temp!==null) partes.push(`${temp} temporada${temp===1?'':'s'} activo`);
   return partes.join(' · ');
 }
+// Fecha desde la que a una persona le cuentan las formaciones: su "Data de alta no comité"
+// o, si no la tiene, el día en que se añadió a la app (va dentro de su id).
+function fechaInicioPersona(r){
+  if(!r) return null;
+  if(r.fechaAlta) return r.fechaAlta;
+  const t = typeof r.id==='string' && r.id.length>6 ? parseInt(r.id.slice(0,-6),36) : NaN;
+  if(!isNaN(t) && t>1.5e12 && t<4.1e12){
+    const d = new Date(t), p = n=>String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+  }
+  return null;
+}
+// Una formación cuenta para una persona si ya estaba dada de alta ese día,
+// o si tiene marcada asistencia/ausencia justificada en ella (lo marcado siempre cuenta).
+function formacionCuentaPara(f, r){
+  if(f.estados && f.estados[r.id]) return true;
+  const ini = fechaInicioPersona(r);
+  return !ini || !f.fecha || f.fecha >= ini;
+}
 function asistenciaStats(refId){
   const ref = state.referees.find(r=>r.id===refId);
   const col = ref ? ref.colectivo : 'arbitro';
-  const formacionesCol = state.formaciones.filter(f=>f.colectivo===col);
+  const formacionesCol = state.formaciones.filter(f=>f.colectivo===col && (!ref || formacionCuentaPara(f, ref)));
   const total = formacionesCol.length;
   const asistidas = formacionesCol.filter(f=>f.estados[refId]==='si').length;
   const justificadas = formacionesCol.filter(f=>f.estados[refId]==='justificada').length;
@@ -2271,8 +2290,10 @@ function renderAsistencia(){
   const formaciones = state.formaciones.filter(f=>f.colectivo===session.colectivo);
   const totalPersonas = personas.length;
   const totalFormaciones = formaciones.length;
-  const mediaAsistencia = totalFormaciones && totalPersonas
-    ? (formaciones.reduce((s,f)=>s+contarSi(f),0) / (totalFormaciones*totalPersonas) * 100)
+  const elegibles = f => personas.filter(r=>formacionCuentaPara(f, r)).length;
+  const totalPlazas = formaciones.reduce((s,f)=>s+elegibles(f),0);
+  const mediaAsistencia = totalFormaciones && totalPlazas
+    ? (formaciones.reduce((s,f)=>s+contarSi(f),0) / totalPlazas * 100)
     : 0;
   document.getElementById('af-resumen').innerHTML = `
     <div class="summary-box"><div class="num tabular">${totalFormaciones}</div><div class="lbl">Formaciones</div></div>
@@ -2284,7 +2305,7 @@ function renderAsistencia(){
   lista.innerHTML = formaciones.length
     ? [...formaciones].sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(f=>`
       <div class="ref-card" data-fid="${f.id}">
-        <div class="ref-avg" style="background:var(--panel-2);color:var(--text-dim);">${contarSi(f)}/${totalPersonas||0}</div>
+        <div class="ref-avg" style="background:var(--panel-2);color:var(--text-dim);">${contarSi(f)}/${elegibles(f)}</div>
         <div class="ref-info">
           <div class="ref-name">${escapeHtml(f.nombre)}</div>
           <div class="ref-meta">${fmtDate(f.fecha)}</div>
@@ -2306,18 +2327,42 @@ function renderAsistencia(){
 function renderFormacionDetalle(fid){
   const f = state.formaciones.find(x=>x.id===fid);
   const personas = state.referees.filter(r=>r.colectivo===f.colectivo);
+  const metaTexto = ()=>{
+    const n = personas.filter(r=>formacionCuentaPara(f, r)).length;
+    const fuera = personas.length - n;
+    return `${fmtDate(f.fecha)} · ${COLECTIVO_LABEL[f.colectivo]} · ${contarSi(f)}/${n} asistentes`
+      + (fuera ? ` · ${fuera} con alta posterior (no cuentan)` : '');
+  };
   document.getElementById('af-detalle-cabecera').innerHTML = `
-    <h2 style="color:var(--text);font-size:18px;margin-bottom:2px;">${escapeHtml(f.nombre)}</h2>
-    <div class="ref-meta">${fmtDate(f.fecha)} · ${COLECTIVO_LABEL[f.colectivo]} · ${contarSi(f)}/${personas.length} asistentes</div>
-    ${session.role==='admin' ? `<button class="btn danger" id="af-del-formacion" style="margin-top:12px;width:100%;">Eliminar esta formación</button>` : ''}
+    <h2 style="color:var(--text);font-size:18px;margin-bottom:2px;" id="af-detalle-titulo">${escapeHtml(f.nombre)}</h2>
+    <div class="ref-meta">${metaTexto()}</div>
+    <button class="btn secondary" id="af-edit-titulo" style="margin-top:12px;width:100%;">Editar título</button>
+    ${session.role==='admin' ? `<button class="btn danger" id="af-del-formacion" style="margin-top:8px;width:100%;">Eliminar esta formación</button>` : ''}
   `;
+  document.getElementById('af-edit-titulo').addEventListener('click', async ()=>{
+    const v = await showPrompt('Nuevo título de la formación:', f.nombre);
+    if(v===null) return;
+    const nuevo = v.trim();
+    if(!nuevo){ toast('El título no puede quedar vacío'); return; }
+    if(nuevo===f.nombre) return;
+    const anterior = f.nombre;
+    f.nombre = nuevo;
+    try{
+      await saveFormaciones();
+      document.getElementById('af-detalle-titulo').textContent = nuevo;
+      toast('Título actualizado');
+    }catch(e){
+      f.nombre = anterior;
+      toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado'));
+    }
+  });
   const chk = document.getElementById('af-checklist');
   chk.innerHTML = personas.length
     ? personas.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'})).map(r=>`
       <div class="list-item">
-        <span>${r.nombre}<span class="badge">Cat. ${r.categoria}</span></span>
+        <span>${r.nombre}<span class="badge">Cat. ${r.categoria}</span>${formacionCuentaPara(f, r)?'':'<span class="badge">Alta posterior</span>'}</span>
         <select data-asis-ref="${r.id}" style="width:auto;">
-          <option value="" ${!f.estados[r.id]?'selected':''}>No asistió</option>
+          <option value="" ${!f.estados[r.id]?'selected':''}>${formacionCuentaPara({fecha:f.fecha, estados:{}}, r)?'No asistió':'No cuenta (alta posterior)'}</option>
           <option value="si" ${f.estados[r.id]==='si'?'selected':''}>Asistió</option>
           <option value="justificada" ${f.estados[r.id]==='justificada'?'selected':''}>Ausencia justificada</option>
         </select>
@@ -2327,7 +2372,7 @@ function renderFormacionDetalle(fid){
     const rid = sel.dataset.asisRef;
     if(sel.value){ f.estados[rid] = sel.value; } else { delete f.estados[rid]; }
     await saveFormaciones();
-    document.getElementById('af-detalle-cabecera').querySelector('.ref-meta').textContent = `${fmtDate(f.fecha)} · ${COLECTIVO_LABEL[f.colectivo]} · ${contarSi(f)}/${personas.length} asistentes`;
+    document.getElementById('af-detalle-cabecera').querySelector('.ref-meta').textContent = metaTexto();
   }));
   const delBtn = document.getElementById('af-del-formacion');
   if(delBtn) delBtn.addEventListener('click', async ()=>{
@@ -2893,7 +2938,7 @@ function openEditPerfilRef(id){
         <input type="date" id="epr-alta-${id}" value="${r.fechaAlta||''}">
       </div>
     </div>
-    <p class="note">A idade e as tempadas activo (setembro-xuño) calcúlanse soas a partir destas datas.</p>
+    <p class="note">A idade e as tempadas activo (setembro-xuño) calcúlanse soas a partir destas datas. As formacións anteriores á data de alta non lle contan como non asistidas; se a deixas baleira, úsase o día en que se engadiu á app (${fmtDate(fechaInicioPersona({id:r.id}))}).</p>
     <div class="erow">
       <button class="btn small" id="epr-save-${id}">Guardar</button>
       <button class="btn secondary" id="epr-cancel-${id}">Cancelar</button>
