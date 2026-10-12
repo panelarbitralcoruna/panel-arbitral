@@ -267,7 +267,7 @@
         <button class="btn secondary" id="login-admin-btn" style="width:100%;">Entrar</button>
       </div>
     </div>
-    <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:20px;">Versión del código: 2026-10-08 · rev. asistencia-alta</p>
+    <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:20px;">Versión del código: 2026-10-11 · rev. tecnicos-internas</p>
     <p id="login-estado" style="text-align:center;font-size:12px;color:var(--text-dim);margin-top:10px;">Conectando con la base de datos…</p>
   </div>
 </div>
@@ -386,6 +386,10 @@
       </div>
       <div id="ref-cards"></div>
       <button class="btn secondary hidden" id="btn-export-csv" style="width:100%;margin-top:8px;">⬇ Exportar todo a CSV (Excel)</button>
+      <div class="card" style="margin-top:14px;">
+        <h2 id="carga-tecnicos-titulo">Informes por técnico</h2>
+        <div id="carga-tecnicos"></div>
+      </div>
     </div>
 
     <div id="informes-detalle" class="hidden">
@@ -406,6 +410,13 @@
       <div class="card">
         <h2>Informes por partido</h2>
         <div id="detalle-historial"></div>
+      </div>
+      <div class="card">
+        <div class="eval-collapse-head" id="internas-head">
+          <h2 style="margin:0;" id="internas-titulo">Valoraciones internas</h2>
+          <span class="chevron">▸</span>
+        </div>
+        <div class="eval-collapse-body hidden" id="internas-body"></div>
       </div>
     </div>
   </section>
@@ -792,6 +803,10 @@ function formacionCuentaPara(f, r){
   if(f.estados && f.estados[r.id]) return true;
   const ini = fechaInicioPersona(r);
   return !ini || !f.fecha || f.fecha >= ini;
+}
+// Igual para los tests de reglas: cuenta si ya estaba de alta ese día o si tiene resultado anotado.
+function testCuentaPara(t, r){
+  return formacionCuentaPara({fecha:t.fecha, estados:t.resultados||{}}, r);
 }
 function asistenciaStats(refId){
   const ref = state.referees.find(r=>r.id===refId);
@@ -1793,6 +1808,7 @@ function renderInformes(){
     return 0;
   });
 
+  renderCargaTecnicos();
   const box = document.getElementById('ref-cards');
   if(!list.length){ box.innerHTML = `<div class="empty">No hay ${COLECTIVO_LABEL_PL[session.colectivo].toLowerCase()} que coincidan con el filtro.</div>`; return; }
   box.innerHTML = list.map(r=>`
@@ -1805,6 +1821,42 @@ function renderInformes(){
     </div>
   `).join('');
   box.querySelectorAll('.ref-card').forEach(c=>c.addEventListener('click', ()=>showDetalle(c.dataset.id)));
+}
+
+// Carga de informes y media de cada técnico (solo lo ven técnicos y administración).
+function renderCargaTecnicos(){
+  const col = session.colectivo;
+  document.getElementById('carga-tecnicos-titulo').textContent = `Informes por técnico · ${COLECTIVO_LABEL_PL[col]}`;
+  const evs = state.evaluations.filter(e=>(e.colectivo||'arbitro')===col);
+  const grupos = new Map();
+  state.formadores.filter(f=>(f.colectivo||'arbitro')===col).forEach(f=>grupos.set(f.id, {nombre:f.nombre, evs:[]}));
+  evs.forEach(e=>{
+    let key = e.formadorId && grupos.has(e.formadorId) ? e.formadorId : null;
+    if(!key){
+      const porNombre = [...grupos.entries()].find(([,g])=>g.nombre===e.formador);
+      key = porNombre ? porNombre[0] : (e.formadorId || 'nombre:'+(e.formador||'—'));
+    }
+    if(!grupos.has(key)) grupos.set(key, {nombre:(e.formador||'—')+' (ya no está en la lista)', evs:[]});
+    grupos.get(key).evs.push(e);
+  });
+  const filas = [...grupos.values()].map(g=>{
+    const conMedia = g.evs.filter(e=>e.avg!==null && e.avg!==undefined);
+    return {...g, count:g.evs.length, avg: conMedia.length ? conMedia.reduce((s,e)=>s+e.avg,0)/conMedia.length : null};
+  }).sort((a,b)=>b.count-a.count || a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'}));
+  const box = document.getElementById('carga-tecnicos');
+  if(!filas.length){ box.innerHTML = `<div class="empty">No hay técnicos de ${COLECTIVO_LABEL_PL[col].toLowerCase()} todavía.</div>`; return; }
+  const max = Math.max(1, ...filas.map(f=>f.count));
+  box.innerHTML = filas.map(f=>`
+    <div class="crit-avg-row">
+      <span style="flex:1;min-width:0;">${escapeHtml(f.nombre)}
+        <span class="grp">${f.count} informe${f.count===1?'':'s'}</span>
+        <span style="display:block;height:6px;border-radius:3px;background:var(--panel-2);margin-top:4px;overflow:hidden;">
+          <span style="display:block;height:100%;width:${(f.count/max*100).toFixed(0)}%;background:var(--wood);"></span>
+        </span>
+      </span>
+      ${avgBadgeSmall(f.avg)}
+    </div>`).join('') +
+    `<p class="note">La barra muestra la carga de informes de cada técnico. ${session.role==='admin'?'La cifra':'El color'} es la media de las notas que pone en sus informes: sirve para ver quién es más exigente o más flexible.</p>`;
 }
 
 document.getElementById('f-buscar').addEventListener('input', renderInformes);
@@ -1857,7 +1909,7 @@ function showDetalle(refId){
     : `<div class="empty">Sin evaluaciones todavía.</div>`;
 
   const testsWrap = document.getElementById('detalle-tests-wrap');
-  const testsDeSuColectivo = state.tests.filter(t=>(t.colectivo||'arbitro')===r.colectivo);
+  const testsDeSuColectivo = state.tests.filter(t=>(t.colectivo||'arbitro')===r.colectivo && testCuentaPara(t, r));
   if(testsDeSuColectivo.length){
     testsWrap.classList.remove('hidden');
     document.getElementById('detalle-tests').innerHTML = [...testsDeSuColectivo].sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(t=>{
@@ -1873,6 +1925,16 @@ function showDetalle(refId){
 
   const evsOrdenadas = [...evs].sort((a,b)=>b.fecha.localeCompare(a.fecha));
   document.getElementById('detalle-historial').innerHTML = techInformesColapsables(evsOrdenadas);
+  const conInterna = evsOrdenadas.filter(e=>e.interna && String(e.interna).trim());
+  document.getElementById('internas-titulo').textContent = `Valoraciones internas (${conInterna.length})`;
+  document.getElementById('internas-head').classList.remove('open');
+  document.getElementById('internas-body').classList.add('hidden');
+  document.getElementById('internas-body').innerHTML = conInterna.length
+    ? conInterna.map(e=>`<div class="comment-block interna">
+        <div class="comment-lbl">${fmtDate(e.fecha)} · ${escapeHtml(e.formador||'—')}${e.partido?' · '+escapeHtml(e.partido):''}</div>
+        <div class="comment-txt">${escapeHtml(e.interna)}</div>
+      </div>`).join('')
+    : `<div class="empty">No hay valoraciones internas para esta persona.</div>`;
   document.querySelectorAll('#detalle-historial [data-toggle]').forEach(head=>head.addEventListener('click', ()=>{
     head.classList.toggle('open');
     document.getElementById('body-'+head.dataset.toggle).classList.toggle('hidden');
@@ -1887,6 +1949,11 @@ function showDetalle(refId){
     showDetalle(refId);
   }));
 }
+
+document.getElementById('internas-head').addEventListener('click', ()=>{
+  document.getElementById('internas-head').classList.toggle('open');
+  document.getElementById('internas-body').classList.toggle('hidden');
+});
 
 function techInformesColapsables(evsDesc){
   if(!evsDesc.length) return `<div class="empty">Sin evaluaciones todavía.</div>`;
@@ -1972,10 +2039,14 @@ function renderDistribucion(evs){
     <p class="note">De ${total} evaluación${total===1?'':'s'} en total.</p>`;
 }
 
+// Ítems que nunca aparecen en "Puntos fortes / A mellorar" (sin distinguir mayúsculas ni tildes).
+const FORTALEZAS_EXCLUIDOS = ['puntualidade e contacto co arbitro principal','aspecto persoal','dificultade do partido','errores decisivos'];
+function normalizarTexto(t){ return String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(); }
 function renderFortalezas(evs){
   const porCriterio = {};
   evs.forEach(e=> e.scores.forEach(s=>{
     if(s.incluirMedia===false) return;
+    if(FORTALEZAS_EXCLUIDOS.includes(normalizarTexto(s.label))) return;
     porCriterio[s.label] = porCriterio[s.label] || {grupo:s.grupo, vals:[]};
     if(typeof s.value==='number') porCriterio[s.label].vals.push(s.value);
   }));
@@ -1984,7 +2055,9 @@ function renderFortalezas(evs){
   }));
   if(arr.length < 2) return `<div class="empty">Aínda non hai datos abondo.</div>`;
   arr.sort((a,b)=>b.avg-a.avg);
-  const mejores = arr.slice(0,3), peores = arr.slice(-3).reverse();
+  // Hasta 5 de cada; si hay menos de 10 ítems, se reparten para que ninguno salga en las dos listas.
+  const k = Math.min(5, Math.floor(arr.length/2));
+  const mejores = arr.slice(0,k), peores = arr.slice(arr.length-k).reverse();
   const list = items => items.map(it=>`<div class="crit-avg-row"><span>${it.label}</span><span class="word-chip ${colorForAvg(it.avg)}">${bandWord(it.avg)}</span></div>`).join('');
   return `<div class="grupo-titulo" style="margin-top:0;">Puntos fortes</div>${list(mejores)}
     <div class="grupo-titulo">A mellorar</div>${list(peores)}`;
@@ -2045,7 +2118,7 @@ function renderVistaDetalle(refId){
     }</div>`;
   }
 
-  const testsDeSuColectivo2 = state.tests.filter(t=>(t.colectivo||'arbitro')===r.colectivo);
+  const testsDeSuColectivo2 = state.tests.filter(t=>(t.colectivo||'arbitro')===r.colectivo && testCuentaPara(t, r));
   if(testsDeSuColectivo2.length){
     html += `<div class="card"><h2>Tests de reglas</h2>${
       [...testsDeSuColectivo2].sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(t=>{
@@ -2151,8 +2224,9 @@ function renderTests(){
   box.innerHTML = testsCol.length
     ? [...testsCol].sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(t=>{
         const hechos = personas.filter(r=>t.resultados[r.id]).length;
+        const disponibles = personas.filter(r=>testCuentaPara(t, r)).length;
         return `<div class="ref-card" data-tid="${t.id}">
-          <div class="ref-avg" style="background:var(--panel-2);color:var(--text-dim);">${hechos}/${personas.length}</div>
+          <div class="ref-avg" style="background:var(--panel-2);color:var(--text-dim);">${hechos}/${disponibles}</div>
           <div class="ref-info">
             <div class="ref-name">${escapeHtml(t.titulo)}</div>
             <div class="ref-meta">${fmtDate(t.fecha)} · ${t.numPreguntas} preguntas</div>
@@ -2170,6 +2244,8 @@ function renderTestDetalle(tid){
   document.getElementById('tr-detalle-cabecera').innerHTML = `
     <h2 style="color:var(--text);font-size:18px;margin-bottom:2px;">${escapeHtml(t.titulo)}</h2>
     <div class="ref-meta">${COLECTIVO_LABEL[t.colectivo||'arbitro']} · ${fmtDate(t.fecha)} · ${t.numPreguntas} preguntas · aprobado: ${cats.map(c=>`Cat.${c}≥${t.umbral[c]??0}`).join(' · ')}</div>
+    <div class="ref-meta">${(()=>{ const disp = personas.filter(r=>testCuentaPara(t, r)).length; const fuera = personas.length-disp;
+      return `Participación: ${personas.filter(r=>t.resultados[r.id]).length}/${disp}` + (fuera ? ` · ${fuera} con alta posterior (no cuentan)` : ''); })()}</div>
     <div class="row" style="margin-top:12px;">
       <button class="btn secondary" id="tr-edit-test">Editar test</button>
       <button class="btn danger" id="tr-del-test">Eliminar este test</button>
@@ -2212,7 +2288,7 @@ function renderTestDetalle(tid){
     ? personas.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'})).map(r=>{
         const actual = t.resultados[r.id];
         return `<div class="list-item">
-          <span>${r.nombre}<span class="badge">Cat. ${r.categoria}</span></span>
+          <span>${r.nombre}<span class="badge">Cat. ${r.categoria}</span>${testCuentaPara(t, r)?'':'<span class="badge">Alta posterior</span>'}</span>
           <div style="display:flex;gap:6px;align-items:center;">
             <input type="number" min="0" max="${t.numPreguntas}" style="width:64px;" data-tr-aciertos="${r.id}"
               value="${actual&&!actual.noRealizado?actual.aciertos:''}" ${actual&&actual.noRealizado?'disabled':''}>
