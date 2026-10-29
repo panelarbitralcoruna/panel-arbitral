@@ -73,7 +73,7 @@
   .brand span{ color:var(--text-dim); font-family:'Inter',sans-serif; text-transform:none; letter-spacing:0; font-size:12px; }
 
   nav{ display:flex; gap:4px; overflow-x:auto; }
-  nav button{ flex:1; min-width:80px; background:none; border:none; color:var(--text-dim); font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.04em; font-size:12px; padding:10px 6px; cursor:pointer; border-bottom:3px solid transparent; transition:.15s; white-space:nowrap; }
+  nav button{ flex:1; min-width:64px; background:none; border:none; color:var(--text-dim); font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.04em; font-size:12px; padding:10px 6px; cursor:pointer; border-bottom:3px solid transparent; transition:.15s; white-space:nowrap; }
   nav button.active{ color:var(--text); border-bottom-color:var(--wood); }
   nav button:hover{ color:var(--text); }
 
@@ -180,6 +180,8 @@
   .list-item{ display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-top:1px solid var(--line); font-size:13px; gap:8px; }
   .list-item:first-of-type{ border-top:none; }
   .list-item .meta{ color:var(--text-dim); font-size:10px; display:block; }
+  #ev-formulario, #as-formulario{ scroll-margin-top:140px; }
+  .crit-avg-row .meta{ color:var(--text-dim); font-size:10px; display:block; margin-top:2px; }
 
   .edit-form{ background:var(--panel-2); border:1px solid var(--line); border-radius:var(--radius); padding:12px; margin:0 0 10px 0; }
 
@@ -267,7 +269,7 @@
         <button class="btn secondary" id="login-admin-btn" style="width:100%;">Entrar</button>
       </div>
     </div>
-    <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:20px;">Versión del código: 2026-10-11 · rev. tecnicos-internas</p>
+    <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:20px;">Versión del código: 2026-10-29 · rev. asignaciones-editar</p>
     <p id="login-estado" style="text-align:center;font-size:12px;color:var(--text-dim);margin-top:10px;">Conectando con la base de datos…</p>
   </div>
 </div>
@@ -286,6 +288,7 @@
     <button class="tab-btn active" data-tab="evaluar">Evaluar</button>
     <button class="tab-btn" data-tab="informes">Informes</button>
     <button class="tab-btn" data-tab="asistencia">Asistencia</button>
+    <button class="tab-btn" data-tab="asignar">Asignar</button>
     <button class="tab-btn" data-tab="ajustes">Ajustes</button>
   </nav>
 </header>
@@ -301,8 +304,13 @@
         <button type="button" class="btn secondary" id="ev-col-oficial">Oficiales de mesa</button>
       </div>
     </div>
-    <div class="card">
+    <div class="card hidden" id="ev-pendientes-wrap">
+      <h2 id="ev-pendientes-titulo">Informes pendientes</h2>
+      <div id="ev-pendientes"></div>
+    </div>
+    <div class="card" id="ev-formulario">
       <h2>Nueva evaluación de partido</h2>
+      <div id="ev-asignacion-banner" class="hidden"></div>
 
       <label for="ev-formador">Formador/a</label>
       <div class="row">
@@ -357,6 +365,67 @@
 
       <button class="btn" id="ev-guardar">Guardar evaluación</button>
       <p class="note">Esta pestaña no pide PIN. Informes y Ajustes sí lo piden, para que solo los técnicos entren ahí.</p>
+    </div>
+  </section>
+
+  <!-- ASIGNAR (solo administración) -->
+  <section id="view-asignar" class="hidden">
+    <div class="card" id="as-formulario">
+      <h2 id="as-form-titulo">Asignar un informe</h2>
+      <div id="as-editando-aviso" class="hidden"></div>
+      <label style="margin-top:0;">Colectivo</label>
+      <div class="row">
+        <button type="button" class="btn secondary" id="as-col-arbitro">Árbitros</button>
+        <button type="button" class="btn secondary" id="as-col-oficial">Oficiales de mesa</button>
+      </div>
+      <div class="row">
+        <div>
+          <label for="as-tecnico">Técnico</label>
+          <select id="as-tecnico"></select>
+        </div>
+        <div>
+          <label for="as-persona" id="as-persona-label">Árbitro</label>
+          <select id="as-persona"></select>
+        </div>
+      </div>
+      <label for="as-partido">Equipos / partido</label>
+      <input type="text" id="as-partido" placeholder="Ej. Equipo A vs Equipo B">
+      <div class="row">
+        <div>
+          <label for="as-fecha">Fecha del partido</label>
+          <input type="date" id="as-fecha">
+        </div>
+        <div>
+          <label for="as-plazo">Plazo de entrega (hasta las 23:59)</label>
+          <input type="date" id="as-plazo">
+        </div>
+      </div>
+      <label for="as-cat">Categoría do partido</label>
+      <select id="as-cat"></select>
+      <div class="row hidden" id="as-genero-wrap" style="margin-top:8px;">
+        <button type="button" class="btn secondary" id="as-genero-m">Masculino</button>
+        <button type="button" class="btn secondary" id="as-genero-f">Femenino</button>
+      </div>
+      <div class="hidden" id="as-funcion-wrap">
+        <label for="as-funcion">Función (opcional)</label>
+        <select id="as-funcion"></select>
+      </div>
+      <button class="btn" id="as-guardar">Asignar informe</button>
+      <button class="btn secondary hidden" id="as-cancelar-edicion" style="width:100%;margin-top:8px;">Cancelar edición</button>
+      <p class="note">El plazo se rellena solo: el viernes siguiente a la fecha del partido, hasta las 23:59. Puedes cambiarlo si hace falta. El técnico verá el informe en su pestaña Evaluar con el partido, la fecha y la categoría ya puestos.</p>
+    </div>
+    <div class="card">
+      <h2>Informes asignados</h2>
+      <div class="filters">
+        <select id="as-filtro-tecnico"></select>
+        <select id="as-filtro-estado">
+          <option value="pendientes">Pendientes</option>
+          <option value="realizados">Realizados</option>
+          <option value="todos">Todos</option>
+        </select>
+      </div>
+      <div id="as-resumen" class="note" style="margin-top:0;margin-bottom:8px;"></div>
+      <div id="as-lista"></div>
     </div>
   </section>
 
@@ -754,7 +823,7 @@ const DEFAULT_CATS_PARTIDO = [
 ];
 function seedCategoriasPartido(){ return DEFAULT_CATS_PARTIDO.map(c=>({id:uid(), ...c})); }
 
-let state = { referees: [], formadores: [], criterios: [], evaluations: [], categoriasPartido: [], formaciones: [], tests: [], grupoOrden: {arbitro:[], oficial:[]} };
+let state = { referees: [], formadores: [], criterios: [], evaluations: [], categoriasPartido: [], formaciones: [], tests: [], asignaciones: [], grupoOrden: {arbitro:[], oficial:[]} };
 let seleccion = {};
 let generoSeleccionado = null;
 let pronosticoSeleccionado = null;
@@ -1103,6 +1172,7 @@ async function loadAll(){
   state.categoriasPartido = (cp && cp.length) ? cp : seedCategoriasPartido();
   state.formaciones = parseOr(g.formaciones, []);
   state.tests = parseOr(g.tests, []);
+  state.asignaciones = parseOr(g.asignaciones, []);
   state.grupoOrden = { arbitro: parseOr(g.grupoOrdenArbitro, []), oficial: parseOr(g.grupoOrdenOficial, []) };
   await cargarReferees();
   state.evaluations = [];
@@ -1167,6 +1237,7 @@ async function migrarTodoYGuardar(opciones){
   });
 
   state.tests = state.tests || [];
+  state.asignaciones = state.asignaciones || [];
   state.grupoOrden = state.grupoOrden || {arbitro:[], oficial:[]};
   state.grupoOrden.arbitro = state.grupoOrden.arbitro || [];
   state.grupoOrden.oficial = state.grupoOrden.oficial || [];
@@ -1180,6 +1251,7 @@ async function migrarTodoYGuardar(opciones){
     {clave:'categoriasPartido', nombre:'categorías de partido', valor:()=>state.categoriasPartido, guardar:saveCategoriasPartido},
     {clave:'formaciones', nombre:'formaciones y asistencia', valor:()=>state.formaciones, guardar:saveFormaciones},
     {clave:'tests', nombre:'tests de reglas', valor:()=>state.tests, guardar:saveTests},
+    {clave:'asignaciones', nombre:'informes asignados', valor:()=>state.asignaciones, guardar:()=>guardarGeneral({asignaciones: state.asignaciones})},
     {clave:'grupoOrden-arbitro', nombre:'orden de grupos (árbitros)', valor:()=>state.grupoOrden.arbitro, guardar:()=>guardarOrdenGrupos('arbitro', state.grupoOrden.arbitro)},
     {clave:'grupoOrden-oficial', nombre:'orden de grupos (oficiais)', valor:()=>state.grupoOrden.oficial, guardar:()=>guardarOrdenGrupos('oficial', state.grupoOrden.oficial)}
   ];
@@ -1277,12 +1349,13 @@ let session = { role:null, refId:null, colectivo:'arbitro' };
 
 function activarTab(tab){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
-  ['evaluar','informes','ajustes','vista','asistencia'].forEach(t=>{
+  ['evaluar','informes','ajustes','vista','asistencia','asignar'].forEach(t=>{
     document.getElementById('view-'+t).classList.toggle('hidden', t!==tab);
   });
   if(tab==='informes'){ showListado(); renderInformes(); }
   if(tab==='ajustes'){ renderAjustes(); showListadoTests(); renderUmbralesWrap(); renderTests(); }
-  if(tab==='evaluar'){ renderEvaluarArbitros(); renderFormadoresSelect(); renderCategoriasPartidoSelect(); renderCriterios(); }
+  if(tab==='evaluar'){ renderEvaluarArbitros(); renderFormadoresSelect(); renderCategoriasPartidoSelect(); renderCriterios(); renderPendientes(); mostrarBannerAsignacion(); }
+  if(tab==='asignar'){ renderAsignar(); }
   if(tab==='asistencia'){ showListadoAsistencia(); renderAsistencia(); }
 }
 
@@ -1295,7 +1368,7 @@ function enterApp(){
   const wraps = ['ev-colectivo-wrap','inf-colectivo-wrap','af-colectivo-wrap'];
   if(session.role==='admin'){
     nav.classList.remove('hidden');
-    ['evaluar','informes','asistencia','ajustes'].forEach(t=>document.querySelector(`.tab-btn[data-tab="${t}"]`).classList.remove('hidden'));
+    ['evaluar','informes','asistencia','asignar','ajustes'].forEach(t=>document.querySelector(`.tab-btn[data-tab="${t}"]`).classList.remove('hidden'));
     wraps.forEach(id=>{ const el=document.getElementById(id); if(el) el.classList.remove('hidden'); });
     document.getElementById('ev-col-arbitro').classList.toggle('active', session.colectivo==='arbitro');
     document.getElementById('ev-col-oficial').classList.toggle('active', session.colectivo==='oficial');
@@ -1308,7 +1381,7 @@ function enterApp(){
     activarTab('evaluar');
   } else if(session.role==='arbitro'){
     nav.classList.add('hidden');
-    ['evaluar','informes','ajustes','asistencia'].forEach(t=>document.getElementById('view-'+t).classList.add('hidden'));
+    ['evaluar','informes','ajustes','asistencia','asignar'].forEach(t=>document.getElementById('view-'+t).classList.add('hidden'));
     document.getElementById('view-vista').classList.remove('hidden');
     renderVistaDetalle(session.refId);
   }
@@ -1323,6 +1396,8 @@ async function cerrarSesionFirebase(){
 }
 function salir(){
   session = { role:null, refId:null, colectivo:'arbitro' };
+  asignacionActiva = null;
+  if(asEditando) salirEdicionAsignacion();
   cerrarSesionFirebase();
   document.getElementById('app-shell').classList.add('hidden');
   document.getElementById('login-screen').classList.remove('hidden');
@@ -1705,6 +1780,7 @@ document.getElementById('ev-guardar').addEventListener('click', async ()=>{
   const pronostico = (formador.puedePronostico && pronosticoSeleccionado) ? pronosticoSeleccionado : null;
 
   const ref = state.referees.find(r=>r.id===arbitroId);
+  const asignacionId = asignacionParaGuardar(formadorId, arbitroId);
   const nuevaEvaluacion = {
     id: uid(), arbitroId, arbitroNombre: ref?ref.nombre:'', categoria: ref?ref.categoria:'',
     colectivo: session.colectivo,
@@ -1714,10 +1790,14 @@ document.getElementById('ev-guardar').addEventListener('click', async ()=>{
     scores,
     avg: avg!==null ? Math.round(avg*100)/100 : null, interna, feedback, pronostico
   };
+  if(asignacionId) nuevaEvaluacion.asignacionId = asignacionId;
 
   try{
     await guardarUnaEvaluacion(nuevaEvaluacion);
-    toast('✓ Informe publicado con éxito');
+    toast(asignacionId ? '✓ Informe publicado con éxito (asignación completada)' : '✓ Informe publicado con éxito');
+    asignacionActiva = null;
+    mostrarBannerAsignacion();
+    renderPendientes();
     document.getElementById('ev-partido').value='';
     document.getElementById('ev-cat-partido').value='';
     document.getElementById('ev-rol-oficial').value='';
@@ -1729,6 +1809,281 @@ document.getElementById('ev-guardar').addEventListener('click', async ()=>{
     document.getElementById('ev-feedback').value='';
     renderCriterios();
   }catch(e){ toast('No se pudo guardar: '+(e&&e.message?e.message:'motivo desconocido')+'. Inténtalo de nuevo.'); }
+});
+
+// ---------- ASIGNACIÓN DE INFORMES ----------
+let asignacionActiva = null;   // id de la asignación cargada en el formulario de Evaluar
+let asColectivo = 'arbitro';
+let asGenero = null;
+let asEditando = null;   // id de la asignación que se está editando en la pestaña Asignar
+
+function ymdLocal(d){ const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
+// Plazo por defecto: el viernes siguiente a la fecha del partido (23:59).
+function plazoPorDefecto(fechaPartido){
+  const d = new Date((fechaPartido||todayStr())+'T12:00:00');
+  do{ d.setDate(d.getDate()+1); }while(d.getDay()!==5);
+  return ymdLocal(d);
+}
+function finPlazoMs(a){ return new Date(a.plazo+'T23:59:59').getTime(); }
+function msDeId(id){ const t = typeof id==='string' && id.length>6 ? parseInt(id.slice(0,-6),36) : NaN; return (!isNaN(t) && t>1.5e12 && t<4.1e12) ? t : null; }
+function evaluacionDeAsignacion(a){ return state.evaluations.find(e=>e.asignacionId===a.id) || null; }
+function estadoAsignacion(a){
+  const ev = evaluacionDeAsignacion(a);
+  if(ev){ const t = msDeId(ev.id); return {hecho:true, ev, tarde: !!(t && t>finPlazoMs(a)), entregado: t ? ymdLocal(new Date(t)) : ev.fecha}; }
+  return {hecho:false, vencido: Date.now()>finPlazoMs(a), hoy: todayStr()===a.plazo};
+}
+function chipAsignacion(a, st){
+  if(st.hecho) return st.tarde ? `<span class="chip v5">Entregado fuera de plazo</span>` : `<span class="chip v9">Entregado</span>`;
+  if(st.vencido) return `<span class="chip v3">Fuera de plazo</span>`;
+  if(st.hoy) return `<span class="chip v7">Vence hoy 23:59</span>`;
+  return `<span class="chip gray">Hasta ${fmtDate(a.plazo)}</span>`;
+}
+function categoriaAsignacionTexto(a){
+  const cat = state.categoriasPartido.find(c=>c.id===a.catPartidoId);
+  if(!cat) return a.catNombre || '—';
+  return cat.sinGenero ? cat.nombre : `${cat.nombre}${a.genero==='M'?' masculino':a.genero==='F'?' femenino':''}`;
+}
+function personaAsignacion(a){ const r = state.referees.find(x=>x.id===a.arbitroId); return r ? r.nombre : (a.arbitroNombre||'—')+' (ya no está)'; }
+function funcionAsignacionTexto(a){ const f = FUNCIONES_OFICIAL.find(x=>x.key===a.funcion); return f ? f.label : ''; }
+async function saveAsignaciones(){ await guardarGeneral({asignaciones: state.asignaciones}); }
+
+// --- Técnico: sus informes pendientes (pestaña Evaluar) ---
+function renderPendientes(){
+  const wrap = document.getElementById('ev-pendientes-wrap');
+  if(session.role!=='tecnico'){ wrap.classList.add('hidden'); return; }
+  wrap.classList.remove('hidden');
+  const mias = state.asignaciones.filter(a=>a.formadorId===session.tecnicoId)
+    .map(a=>({a, st:estadoAsignacion(a)})).filter(x=>!x.st.hecho)
+    .sort((x,y)=>x.a.plazo.localeCompare(y.a.plazo) || x.a.fechaPartido.localeCompare(y.a.fechaPartido));
+  document.getElementById('ev-pendientes-titulo').textContent = `Informes pendientes (${mias.length})`;
+  const box = document.getElementById('ev-pendientes');
+  box.innerHTML = mias.length ? mias.map(({a,st})=>`
+    <div class="list-item">
+      <span style="flex:1;min-width:0;">${escapeHtml(personaAsignacion(a))}
+        <span class="meta">${escapeHtml(a.partido||'')} · ${escapeHtml(categoriaAsignacionTexto(a))}${a.funcion?' · '+escapeHtml(funcionAsignacionTexto(a)):''} · ${fmtDate(a.fechaPartido)}</span>
+      </span>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+        ${chipAsignacion(a, st)}
+        <button class="btn small" data-hacer-asig="${a.id}" style="margin-top:0;">Hacer informe</button>
+      </div>
+    </div>`).join('')
+    : `<div class="empty">No tienes informes pendientes.</div>`;
+  box.querySelectorAll('[data-hacer-asig]').forEach(b=>b.addEventListener('click', ()=>cargarAsignacionEnFormulario(b.dataset.hacerAsig)));
+}
+function mostrarBannerAsignacion(){
+  const ban = document.getElementById('ev-asignacion-banner');
+  const a = asignacionActiva && state.asignaciones.find(x=>x.id===asignacionActiva);
+  if(!a){ ban.classList.add('hidden'); ban.innerHTML=''; return; }
+  ban.classList.remove('hidden');
+  ban.innerHTML = `<div class="banner-warn" style="border-color:var(--cyan);background:rgba(73,199,194,.08);margin-bottom:6px;">
+      <strong>Informe asignado:</strong> ${escapeHtml(personaAsignacion(a))} · ${escapeHtml(a.partido||'')} · plazo ${fmtDate(a.plazo)} 23:59
+      <button type="button" class="login-link" id="ev-quitar-asig" style="margin-left:8px;">Quitar</button>
+    </div>`;
+  document.getElementById('ev-quitar-asig').addEventListener('click', ()=>{ asignacionActiva = null; mostrarBannerAsignacion(); });
+}
+function cargarAsignacionEnFormulario(id){
+  const a = state.asignaciones.find(x=>x.id===id);
+  if(!a) return;
+  if((a.colectivo||'arbitro')!==session.colectivo){ toast('Este informe es de otro colectivo'); return; }
+  renderEvaluarArbitros();
+  const selArb = document.getElementById('ev-arbitro');
+  if(![...selArb.options].some(o=>o.value===a.arbitroId)){ toast('Esa persona ya no está dada de alta. Avisa al administrador.'); return; }
+  asignacionActiva = a.id;
+  selArb.value = a.arbitroId;
+  document.getElementById('ev-fecha').value = a.fechaPartido || todayStr();
+  document.getElementById('ev-partido').value = a.partido || '';
+  renderCategoriasPartidoSelect();
+  document.getElementById('ev-cat-partido').value = a.catPartidoId || '';
+  actualizarGeneroToggle();
+  generoSeleccionado = a.genero || null;
+  marcarGenero();
+  if(session.colectivo==='oficial' && a.funcion && document.getElementById('ev-rol-oficial').value!==a.funcion){
+    document.getElementById('ev-rol-oficial').value = a.funcion;
+    renderCriterios();
+  }
+  mostrarBannerAsignacion();
+  document.getElementById('ev-formulario').scrollIntoView({behavior:'smooth', block:'start'});
+  toast('Datos del partido cargados. Completa la valoración.');
+}
+// Al guardar: la asignación cargada (si es la misma persona) o, si no, la única pendiente de ese técnico con esa persona.
+function asignacionParaGuardar(formadorId, arbitroId){
+  if(asignacionActiva){
+    const a = state.asignaciones.find(x=>x.id===asignacionActiva);
+    if(a && a.arbitroId===arbitroId && !estadoAsignacion(a).hecho) return a.id;
+  }
+  const cand = state.asignaciones.filter(a=>a.formadorId===formadorId && a.arbitroId===arbitroId && !estadoAsignacion(a).hecho);
+  return cand.length===1 ? cand[0].id : null;
+}
+
+// --- Administración: pestaña Asignar ---
+function marcarGeneroAsignar(){
+  document.getElementById('as-genero-m').classList.toggle('active', asGenero==='M');
+  document.getElementById('as-genero-f').classList.toggle('active', asGenero==='F');
+}
+function actualizarGeneroAsignar(){
+  const cat = state.categoriasPartido.find(c=>c.id===document.getElementById('as-cat').value);
+  const wrap = document.getElementById('as-genero-wrap');
+  if(!cat || cat.sinGenero){ wrap.classList.add('hidden'); asGenero = null; } else { wrap.classList.remove('hidden'); }
+  marcarGeneroAsignar();
+}
+function renderAsignar(){
+  document.getElementById('as-col-arbitro').classList.toggle('active', asColectivo==='arbitro');
+  document.getElementById('as-col-oficial').classList.toggle('active', asColectivo==='oficial');
+  document.getElementById('as-persona-label').textContent = COLECTIVO_LABEL[asColectivo];
+  const ordenar = (x,y)=>x.nombre.localeCompare(y.nombre,'es',{sensitivity:'base'});
+  const tecnicos = state.formadores.filter(f=>(f.colectivo||'arbitro')===asColectivo).slice().sort(ordenar);
+  const personas = state.referees.filter(r=>r.colectivo===asColectivo).slice().sort(ordenar);
+  const keep = (id, html)=>{ const el=document.getElementById(id); const prev=el.value; el.innerHTML=html; if([...el.options].some(o=>o.value===prev)) el.value=prev; };
+  keep('as-tecnico', `<option value="">Selecciona técnico…</option>` + tecnicos.map(f=>`<option value="${f.id}">${escapeHtml(f.nombre)}</option>`).join(''));
+  keep('as-persona', `<option value="">Selecciona…</option>` + personas.map(r=>`<option value="${r.id}">${escapeHtml(r.nombre)} (Cat. ${r.categoria})</option>`).join(''));
+  keep('as-cat', `<option value="">Selecciona categoría…</option>` + state.categoriasPartido.map(c=>`<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join(''));
+  keep('as-funcion', `<option value="">La elige el técnico</option>` + FUNCIONES_OFICIAL.map(f=>`<option value="${f.key}">${f.label}</option>`).join(''));
+  keep('as-filtro-tecnico', `<option value="">Todos los técnicos</option>` + tecnicos.map(f=>`<option value="${f.id}">${escapeHtml(f.nombre)}</option>`).join(''));
+  document.getElementById('as-funcion-wrap').classList.toggle('hidden', asColectivo!=='oficial');
+  if(!document.getElementById('as-fecha').value){ document.getElementById('as-fecha').value = todayStr(); }
+  if(!document.getElementById('as-plazo').value){ document.getElementById('as-plazo').value = plazoPorDefecto(document.getElementById('as-fecha').value); }
+  actualizarGeneroAsignar();
+  renderListaAsignaciones();
+}
+function renderListaAsignaciones(){
+  const fTec = document.getElementById('as-filtro-tecnico').value;
+  const fEst = document.getElementById('as-filtro-estado').value;
+  const todas = state.asignaciones.filter(a=>(a.colectivo||'arbitro')===asColectivo).map(a=>({a, st:estadoAsignacion(a)}));
+  const pend = todas.filter(x=>!x.st.hecho), venc = pend.filter(x=>x.st.vencido), tarde = todas.filter(x=>x.st.hecho && x.st.tarde);
+  document.getElementById('as-resumen').textContent = `${pend.length} pendiente${pend.length===1?'':'s'} (${venc.length} fuera de plazo) · ${todas.length-pend.length} realizado${todas.length-pend.length===1?'':'s'}${tarde.length?` (${tarde.length} entregado${tarde.length===1?'':'s'} tarde)`:''}`;
+  let lista = todas.filter(x=>!fTec || x.a.formadorId===fTec);
+  if(fEst==='pendientes') lista = lista.filter(x=>!x.st.hecho);
+  if(fEst==='realizados') lista = lista.filter(x=>x.st.hecho);
+  lista.sort((x,y)=> (x.st.hecho-y.st.hecho) || (x.st.hecho ? y.a.plazo.localeCompare(x.a.plazo) : x.a.plazo.localeCompare(y.a.plazo)));
+  const box = document.getElementById('as-lista');
+  box.innerHTML = lista.length ? lista.map(({a,st})=>{
+    const f = state.formadores.find(x=>x.id===a.formadorId);
+    return `<div class="list-item">
+      <span style="flex:1;min-width:0;">${escapeHtml(personaAsignacion(a))} <span class="badge">${escapeHtml(f?f.nombre:(a.formadorNombre||'—'))}</span>
+        <span class="meta">${escapeHtml(a.partido||'')} · ${escapeHtml(categoriaAsignacionTexto(a))}${a.funcion?' · '+escapeHtml(funcionAsignacionTexto(a)):''} · partido ${fmtDate(a.fechaPartido)} · plazo ${fmtDate(a.plazo)}${st.hecho?` · entregado ${fmtDate(st.entregado)}`:''}</span>
+      </span>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+        ${chipAsignacion(a, st)}
+        <button class="btn secondary" data-edit-asig="${a.id}">Editar</button>
+        <button class="btn danger" data-del-asig="${a.id}">Quitar</button>
+      </div>
+    </div>`;
+  }).join('') : `<div class="empty">No hay informes asignados con este filtro.</div>`;
+  box.querySelectorAll('[data-edit-asig]').forEach(b=>b.addEventListener('click', ()=>editarAsignacion(b.dataset.editAsig)));
+  box.querySelectorAll('[data-del-asig]').forEach(b=>b.addEventListener('click', async ()=>{
+    const a = state.asignaciones.find(x=>x.id===b.dataset.delAsig);
+    const ok = await showConfirm(`¿Quitar la asignación de ${personaAsignacion(a)} (${a.partido||'sin partido'})? Si ya se hizo el informe, el informe no se borra.`, 'Quitar');
+    if(!ok) return;
+    const antes = state.asignaciones;
+    state.asignaciones = state.asignaciones.filter(x=>x.id!==a.id);
+    try{ await saveAsignaciones(); if(asEditando===a.id) salirEdicionAsignacion(); toast('Asignación quitada'); }
+    catch(e){ state.asignaciones = antes; toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado')); }
+    renderListaAsignaciones();
+  }));
+}
+document.getElementById('as-col-arbitro').addEventListener('click', ()=>{ if(asEditando) salirEdicionAsignacion(); asColectivo='arbitro'; renderAsignar(); });
+document.getElementById('as-col-oficial').addEventListener('click', ()=>{ if(asEditando) salirEdicionAsignacion(); asColectivo='oficial'; renderAsignar(); });
+
+// --- Editar una asignación: se carga en el mismo formulario ---
+function editarAsignacion(id){
+  const a = state.asignaciones.find(x=>x.id===id);
+  if(!a) return;
+  asEditando = a.id;
+  asColectivo = a.colectivo || 'arbitro';
+  renderAsignar();
+  const sel = (elId, v)=>{ const el=document.getElementById(elId); if([...el.options].some(o=>o.value===v)) el.value=v; else el.value=''; };
+  sel('as-tecnico', a.formadorId);
+  sel('as-persona', a.arbitroId);
+  document.getElementById('as-partido').value = a.partido || '';
+  document.getElementById('as-fecha').value = a.fechaPartido || '';
+  document.getElementById('as-plazo').value = a.plazo || '';
+  sel('as-cat', a.catPartidoId);
+  actualizarGeneroAsignar();
+  asGenero = a.genero || null;
+  marcarGeneroAsignar();
+  sel('as-funcion', a.funcion || '');
+  document.getElementById('as-form-titulo').textContent = 'Editar informe asignado';
+  document.getElementById('as-guardar').textContent = 'Guardar cambios';
+  document.getElementById('as-cancelar-edicion').classList.remove('hidden');
+  const st = estadoAsignacion(a);
+  const aviso = document.getElementById('as-editando-aviso');
+  aviso.classList.remove('hidden');
+  aviso.innerHTML = `<div class="banner-warn" style="border-color:var(--cyan);background:rgba(73,199,194,.08);">Editando: ${escapeHtml(personaAsignacion(a))} · ${escapeHtml(a.partido||'')}${st.hecho?'. Este informe ya está entregado: los cambios no modifican el informe hecho, solo la asignación.':''}</div>`;
+  const faltan = [];
+  if(document.getElementById('as-tecnico').value!==a.formadorId) faltan.push('el técnico');
+  if(document.getElementById('as-persona').value!==a.arbitroId) faltan.push('la persona');
+  if(faltan.length) toast(`Ya no está dado de alta ${faltan.join(' ni ')}: elige otro antes de guardar.`);
+  document.getElementById('as-formulario').scrollIntoView({behavior:'smooth', block:'start'});
+}
+function salirEdicionAsignacion(){
+  asEditando = null;
+  document.getElementById('as-form-titulo').textContent = 'Asignar un informe';
+  document.getElementById('as-guardar').textContent = 'Asignar informe';
+  document.getElementById('as-cancelar-edicion').classList.add('hidden');
+  const aviso = document.getElementById('as-editando-aviso'); aviso.classList.add('hidden'); aviso.innerHTML='';
+  document.getElementById('as-partido').value = '';
+  document.getElementById('as-persona').value = '';
+}
+document.getElementById('as-cancelar-edicion').addEventListener('click', ()=>{ salirEdicionAsignacion(); renderListaAsignaciones(); });
+document.getElementById('as-cat').addEventListener('change', actualizarGeneroAsignar);
+document.getElementById('as-genero-m').addEventListener('click', ()=>{ asGenero='M'; marcarGeneroAsignar(); });
+document.getElementById('as-genero-f').addEventListener('click', ()=>{ asGenero='F'; marcarGeneroAsignar(); });
+document.getElementById('as-fecha').addEventListener('change', ()=>{
+  document.getElementById('as-plazo').value = plazoPorDefecto(document.getElementById('as-fecha').value || todayStr());
+});
+document.getElementById('as-filtro-tecnico').addEventListener('change', renderListaAsignaciones);
+document.getElementById('as-filtro-estado').addEventListener('change', renderListaAsignaciones);
+document.getElementById('as-guardar').addEventListener('click', async ()=>{
+  const formadorId = document.getElementById('as-tecnico').value;
+  const arbitroId = document.getElementById('as-persona').value;
+  const partido = document.getElementById('as-partido').value.trim();
+  const fechaPartido = document.getElementById('as-fecha').value;
+  const plazo = document.getElementById('as-plazo').value;
+  const catPartidoId = document.getElementById('as-cat').value;
+  const cat = state.categoriasPartido.find(c=>c.id===catPartidoId);
+  const funcion = asColectivo==='oficial' ? document.getElementById('as-funcion').value : '';
+  if(!formadorId){ toast('Selecciona el técnico'); return; }
+  if(!arbitroId){ toast(`Selecciona ${asColectivo==='oficial'?'el oficial':'el árbitro'}`); return; }
+  if(!partido){ toast('Escribe los equipos del partido'); return; }
+  if(!fechaPartido){ toast('Indica la fecha del partido'); return; }
+  if(!plazo){ toast('Indica el plazo de entrega'); return; }
+  if(plazo < fechaPartido){ toast('El plazo no puede ser anterior al partido'); return; }
+  if(!cat){ toast('Selecciona la categoría del partido'); return; }
+  if(!cat.sinGenero && !asGenero){ toast('Indica si el partido es masculino o femenino'); return; }
+  const f = state.formadores.find(x=>x.id===formadorId), r = state.referees.find(x=>x.id===arbitroId);
+  const datos = {colectivo:asColectivo, formadorId, formadorNombre:f?f.nombre:'', arbitroId, arbitroNombre:r?r.nombre:'',
+    partido, fechaPartido, plazo, catPartidoId, catNombre:cat.nombre, genero: cat.sinGenero ? null : asGenero};
+  if(asEditando){
+    const a = state.asignaciones.find(x=>x.id===asEditando);
+    if(!a){ salirEdicionAsignacion(); toast('Esa asignación ya no existe'); renderListaAsignaciones(); return; }
+    const antes = JSON.parse(JSON.stringify(a));
+    Object.assign(a, datos);
+    if(funcion) a.funcion = funcion; else delete a.funcion;
+    a.editadaEn = todayStr();
+    try{
+      await saveAsignaciones();
+      salirEdicionAsignacion();
+      toast('Asignación actualizada');
+    }catch(e){
+      Object.keys(a).forEach(k=>delete a[k]); Object.assign(a, antes);
+      toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado'));
+    }
+    renderListaAsignaciones();
+    return;
+  }
+  const nueva = {id:uid(), ...datos, creadaEn: todayStr()};
+  if(funcion) nueva.funcion = funcion;
+  state.asignaciones.push(nueva);
+  try{
+    await saveAsignaciones();
+    document.getElementById('as-partido').value = '';
+    document.getElementById('as-persona').value = '';
+    toast(`Informe asignado a ${f?f.nombre:'el técnico'}`);
+  }catch(e){
+    state.asignaciones = state.asignaciones.filter(x=>x.id!==nueva.id);
+    toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado'));
+  }
+  renderListaAsignaciones();
 });
 
 // ---------- INFORMES (vista técnico: cifras) ----------
@@ -1829,7 +2184,7 @@ function renderCargaTecnicos(){
   document.getElementById('carga-tecnicos-titulo').textContent = `Informes por técnico · ${COLECTIVO_LABEL_PL[col]}`;
   const evs = state.evaluations.filter(e=>(e.colectivo||'arbitro')===col);
   const grupos = new Map();
-  state.formadores.filter(f=>(f.colectivo||'arbitro')===col).forEach(f=>grupos.set(f.id, {nombre:f.nombre, evs:[]}));
+  state.formadores.filter(f=>(f.colectivo||'arbitro')===col).forEach(f=>grupos.set(f.id, {id:f.id, nombre:f.nombre, evs:[]}));
   evs.forEach(e=>{
     let key = e.formadorId && grupos.has(e.formadorId) ? e.formadorId : null;
     if(!key){
@@ -1849,7 +2204,13 @@ function renderCargaTecnicos(){
   box.innerHTML = filas.map(f=>`
     <div class="crit-avg-row">
       <span style="flex:1;min-width:0;">${escapeHtml(f.nombre)}
-        <span class="grp">${f.count} informe${f.count===1?'':'s'}</span>
+        <span class="grp">${f.count} informe${f.count===1?'':'s'}</span>${(()=>{
+          if(!f.id) return '';
+          const pend = state.asignaciones.filter(a=>a.formadorId===f.id && !estadoAsignacion(a).hecho);
+          if(!pend.length) return '';
+          const venc = pend.filter(a=>estadoAsignacion(a).vencido).length;
+          return `<span class="meta">${pend.length} pendiente${pend.length===1?'':'s'}${venc?` · <span style="color:var(--rojo);">${venc} fuera de plazo</span>`:''}</span>`;
+        })()}
         <span style="display:block;height:6px;border-radius:3px;background:var(--panel-2);margin-top:4px;overflow:hidden;">
           <span style="display:block;height:100%;width:${(f.count/max*100).toFixed(0)}%;background:var(--wood);"></span>
         </span>
@@ -2490,6 +2851,7 @@ document.getElementById('aj-backup-export').addEventListener('click', ()=>{
     categoriasPartido: state.categoriasPartido,
     formaciones: state.formaciones,
     tests: state.tests,
+    asignaciones: state.asignaciones,
     grupoOrden: state.grupoOrden
   };
   const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
@@ -2522,6 +2884,7 @@ document.getElementById('aj-backup-import-btn').addEventListener('click', async 
     state.categoriasPartido = backup.categoriasPartido || [];
     state.formaciones = backup.formaciones || [];
     state.tests = backup.tests || [];
+    state.asignaciones = backup.asignaciones || [];
     state.grupoOrden = backup.grupoOrden || {arbitro:[], oficial:[]};
     const resultados = await migrarTodoYGuardar();
     input.value = '';
