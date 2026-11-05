@@ -269,7 +269,7 @@
         <button class="btn secondary" id="login-admin-btn" style="width:100%;">Entrar</button>
       </div>
     </div>
-    <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:20px;">Versión del código: 2026-10-29 · rev. asignaciones-editar</p>
+    <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:20px;">Versión del código: 2026-11-05 · rev. material-formaciones</p>
     <p id="login-estado" style="text-align:center;font-size:12px;color:var(--text-dim);margin-top:10px;">Conectando con la base de datos…</p>
   </div>
 </div>
@@ -2489,6 +2489,15 @@ function renderVistaDetalle(refId){
     }</div>`;
   }
 
+  const formsConMaterial = state.formaciones
+    .filter(f=>(f.colectivo||'arbitro')===r.colectivo && puedeVerMaterial(f, r.id) && materialesDe(f).length)
+    .sort((a,b)=>b.fecha.localeCompare(a.fecha));
+  if(formsConMaterial.length){
+    html += `<div class="card"><h2>Material das formacións</h2>${
+      formsConMaterial.map(f=>`<div class="grupo-titulo">${escapeHtml(f.nombre)} · ${fmtDate(f.fecha)}</div>${materialListaHtml(f, false)}`).join('')
+    }</div>`;
+  }
+
   html += `<div class="card"><h2>Informes por partido</h2>${renderInformesColapsables(evsDesc)}</div>`;
   html += `<div class="card"><h2>Evolución</h2>${renderEvolucion(evsAsc)}</div>`;
   html += `<div class="card"><h2>Distribución de valoracións</h2>${renderDistribucion(evs)}</div>`;
@@ -2761,6 +2770,23 @@ function renderAsistencia(){
     : `<div class="empty">Crea una formación para empezar a pasar lista.</div>`;
 }
 
+// ---------- MATERIAL DE LAS FORMACIONES (enlaces a Drive, YouTube...) ----------
+// Solo lo ven quienes tienen marcada "Asistió" o "Ausencia justificada" en esa formación.
+function materialesDe(f){ return Array.isArray(f.materiales) ? f.materiales : []; }
+function esEnlaceValido(u){ return /^https:\/\/[^\s"'<>]+$/i.test(u); }
+function puedeVerMaterial(f, refId){ const e = f.estados && f.estados[refId]; return e==='si' || e==='justificada'; }
+function materialListaHtml(f, conBorrar){
+  const mats = materialesDe(f);
+  if(!mats.length) return `<div class="empty" style="padding:10px;">Todavía no hay material en esta formación.</div>`;
+  return mats.map(m=>`<div class="list-item">
+      <span style="flex:1;min-width:0;">${escapeHtml(m.nombre)}</span>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <a class="btn secondary" href="${esc(m.url)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">Abrir / descargar</a>
+        ${conBorrar?`<button class="btn danger" data-del-mat="${m.id}">Quitar</button>`:''}
+      </div>
+    </div>`).join('');
+}
+
 function renderFormacionDetalle(fid){
   const f = state.formaciones.find(x=>x.id===fid);
   const personas = state.referees.filter(r=>r.colectivo===f.colectivo);
@@ -2775,7 +2801,48 @@ function renderFormacionDetalle(fid){
     <div class="ref-meta">${metaTexto()}</div>
     <button class="btn secondary" id="af-edit-titulo" style="margin-top:12px;width:100%;">Editar título</button>
     ${session.role==='admin' ? `<button class="btn danger" id="af-del-formacion" style="margin-top:8px;width:100%;">Eliminar esta formación</button>` : ''}
+    <div class="grupo-titulo" style="margin-top:18px;">Material de la formación</div>
+    <div id="af-material-lista"></div>
+    ${session.role==='admin' ? `
+      <div class="row" style="margin-top:10px;">
+        <input type="text" id="af-mat-nombre" placeholder="Nombre (ej. Presentación mecánica 2PO)">
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <input type="text" id="af-mat-url" placeholder="Enlace de Drive, YouTube… (https://…)">
+        <button class="btn small" id="af-mat-add" style="flex:0 0 auto;">Añadir</button>
+      </div>
+      <p class="note">Sube el archivo o la carpeta (o un .zip) a Google Drive, compártelo como "Cualquier persona con el enlace" y pega aquí el enlace. Solo lo verán en su perfil quienes tengan marcada <strong>Asistió</strong> o <strong>Ausencia justificada</strong>.</p>` : `<p class="note">Lo ven en su perfil quienes tienen marcada Asistió o Ausencia justificada.</p>`}
   `;
+  const pintarMaterial = ()=>{
+    const box = document.getElementById('af-material-lista');
+    box.innerHTML = materialListaHtml(f, session.role==='admin');
+    box.querySelectorAll('[data-del-mat]').forEach(b=>b.addEventListener('click', async ()=>{
+      const m = materialesDe(f).find(x=>x.id===b.dataset.delMat);
+      const ok = await showConfirm(`¿Quitar "${m.nombre}" de esta formación? El archivo en Drive no se borra.`, 'Quitar');
+      if(!ok) return;
+      const antes = materialesDe(f).slice();
+      f.materiales = antes.filter(x=>x.id!==m.id);
+      try{ await saveFormaciones(); toast('Material quitado'); }
+      catch(e){ f.materiales = antes; toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado')); }
+      pintarMaterial();
+    }));
+  };
+  pintarMaterial();
+  const addMat = document.getElementById('af-mat-add');
+  if(addMat) addMat.addEventListener('click', async ()=>{
+    const nombre = document.getElementById('af-mat-nombre').value.trim();
+    const url = document.getElementById('af-mat-url').value.trim();
+    if(!nombre){ toast('Escribe un nombre para el material'); return; }
+    if(!esEnlaceValido(url)){ toast('Pega un enlace completo que empiece por https://'); return; }
+    const antes = materialesDe(f).slice();
+    f.materiales = antes.concat([{id:uid(), nombre, url}]);
+    try{
+      await saveFormaciones();
+      document.getElementById('af-mat-nombre').value=''; document.getElementById('af-mat-url').value='';
+      toast('Material añadido');
+    }catch(e){ f.materiales = antes; toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado')); }
+    pintarMaterial();
+  });
   document.getElementById('af-edit-titulo').addEventListener('click', async ()=>{
     const v = await showPrompt('Nuevo título de la formación:', f.nombre);
     if(v===null) return;
