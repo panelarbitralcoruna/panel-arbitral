@@ -269,7 +269,7 @@
         <button class="btn secondary" id="login-admin-btn" style="width:100%;">Entrar</button>
       </div>
     </div>
-    <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:20px;">Versión del código: 2026-11-05 · rev. material-formaciones</p>
+    <p style="text-align:center;font-size:11px;color:var(--text-dim);margin-top:20px;">Versión del código: 2026-11-25 · rev. grupos-formacion</p>
     <p id="login-estado" style="text-align:center;font-size:12px;color:var(--text-dim);margin-top:10px;">Conectando con la base de datos…</p>
   </div>
 </div>
@@ -511,6 +511,15 @@
           <input type="text" id="af-nombre" placeholder="Nombre de la formación">
           <input type="date" id="af-fecha">
         </div>
+        <label for="af-grupo">Grupo convocado</label>
+        <select id="af-grupo">
+          <option value="">Selecciona grupo…</option>
+          <option value="iniciacion">Iniciación</option>
+          <option value="zonal">Zonales</option>
+          <option value="todos">Todos (ambos grupos)</option>
+        </select>
+        <p class="note">Solo es obligatoria para el grupo convocado. Los demás pueden asistir de forma voluntaria y queda registrado.</p>
+        <div id="af-sin-grupo-aviso"></div>
         <button class="btn small" id="af-add" style="margin-top:10px;">Crear formación</button>
       </div>
 
@@ -605,6 +614,10 @@
           <option value="D">Cat. D</option>
           <option value="Iniciación">Iniciación</option>
         </select>
+        <select id="aj-arbitro-grupo" style="max-width:150px;">
+          <option value="iniciacion">Grupo Iniciación</option>
+          <option value="zonal">Grupo Zonales</option>
+        </select>
       </div>
       <button class="btn small" id="aj-add-arbitro" style="margin-top:10px;">Añadir árbitro</button>
       <div id="aj-lista-arbitros" style="margin-top:12px;"></div>
@@ -619,10 +632,29 @@
           <option value="1">Categoría 1</option>
           <option value="2">Categoría 2</option>
         </select>
+        <select id="aj-oficial-grupo" style="max-width:150px;">
+          <option value="iniciacion">Grupo Iniciación</option>
+          <option value="zonal">Grupo Zonales</option>
+        </select>
       </div>
       <button class="btn small" id="aj-add-oficial" style="margin-top:10px;">Añadir oficial</button>
       <div id="aj-lista-oficiales" style="margin-top:12px;"></div>
       <p class="note">Funciona igual que con los árbitros: código propio para entrar en su vista personal.</p>
+    </div>
+
+    <div class="card">
+      <h2>Grupos de formación · asignación rápida</h2>
+      <label for="gf-colectivo" style="margin-top:0;">Colectivo</label>
+      <select id="gf-colectivo">
+        <option value="arbitro">Árbitros</option>
+        <option value="oficial">Oficiales de mesa</option>
+      </select>
+      <label for="gf-nombres">Pega los nombres del grupo de Iniciación (uno por línea)</label>
+      <textarea id="gf-nombres" style="min-height:140px;" placeholder="Nombre Apellido&#10;Nombre Apellido&#10;…"></textarea>
+      <label class="chk-inline" style="margin-top:8px;"><input type="checkbox" id="gf-resto-zonal" checked> Poner a todos los demás del colectivo en Zonales</label>
+      <button class="btn small" id="gf-aplicar" style="margin-top:10px;">Aplicar</button>
+      <div id="gf-resultado"></div>
+      <p class="note">Los nombres se comparan sin tener en cuenta mayúsculas, tildes ni espacios de más. Los que no se encuentren aparecerán abajo para que los revises. También puedes cambiar el grupo de cada persona en las listas de arriba.</p>
     </div>
 
     <div class="card">
@@ -868,7 +900,15 @@ function fechaInicioPersona(r){
 }
 // Una formación cuenta para una persona si ya estaba dada de alta ese día,
 // o si tiene marcada asistencia/ausencia justificada en ella (lo marcado siempre cuenta).
+// Grupos de formación: Iniciación (menos de dos temporadas) y Zonales. Independiente de la categoría A-D.
+const GRUPOS_FORMACION = {iniciacion:'Iniciación', zonal:'Zonales'};
+function grupoFormacionTexto(g){ return GRUPOS_FORMACION[g] || 'Todos'; }
+// Una formación es obligatoria para alguien si es para todos, si es de su grupo o si aún no tiene grupo asignado.
+function esDeSuGrupo(f, r){ return !f.grupo || !GRUPOS_FORMACION[f.grupo] || !r.grupoFormacion || r.grupoFormacion===f.grupo; }
+// Asistencia voluntaria: va a una formación que no es de su grupo (no cuenta en sus obligatorias).
+function esVoluntaria(f, r){ return !esDeSuGrupo(f, r) && f.estados && f.estados[r.id]==='si'; }
 function formacionCuentaPara(f, r){
+  if(!esDeSuGrupo(f, r)) return false;
   if(f.estados && f.estados[r.id]) return true;
   const ini = fechaInicioPersona(r);
   return !ini || !f.fecha || f.fecha >= ini;
@@ -884,11 +924,13 @@ function asistenciaStats(refId){
   const total = formacionesCol.length;
   const asistidas = formacionesCol.filter(f=>f.estados[refId]==='si').length;
   const justificadas = formacionesCol.filter(f=>f.estados[refId]==='justificada').length;
-  return { asistidas, total, justificadas };
+  const voluntarias = ref ? state.formaciones.filter(f=>f.colectivo===col && esVoluntaria(f, ref)).length : 0;
+  return { asistidas, total, justificadas, voluntarias };
 }
 function asistenciaTexto(asis){
   let txt = `${asis.asistidas}/${asis.total} formaciones`;
   if(asis.justificadas) txt += ` (${asis.justificadas} ausencia${asis.justificadas===1?'':'s'} justificada${asis.justificadas===1?'':'s'})`;
+  if(asis.voluntarias) txt += ` · ${asis.voluntarias} voluntaria${asis.voluntarias===1?'':'s'}`;
   return txt;
 }
 function procesarFotoArchivo(file){
@@ -2241,9 +2283,9 @@ function showDetalle(refId){
     <div style="display:flex;justify-content:space-between;gap:14px;align-items:flex-start;">
       <div style="flex:1;min-width:0;">
         <h2 style="color:var(--text);font-size:18px;margin-bottom:2px;">${r.nombre}</h2>
-        <div class="ref-meta">Categoría actual: ${r.categoria} · ${count} partido${count===1?'':'s'} informado${count===1?'':'s'} en total</div>
+        <div class="ref-meta">Categoría actual: ${r.categoria} · Grupo de formación: ${r.grupoFormacion?grupoFormacionTexto(r.grupoFormacion):'sin asignar'} · ${count} partido${count===1?'':'s'} informado${count===1?'':'s'} en total</div>
         ${datosPerfil(r)?`<div class="ref-meta">${datosPerfil(r)}</div>`:''}
-        ${asis.total?`<div class="ref-meta">${asistenciaTexto(asis)}</div>`:''}
+        ${(asis.total||asis.voluntarias)?`<div class="ref-meta">${asistenciaTexto(asis)}</div>`:''}
         <div style="margin-top:10px;display:inline-block;">${avgBadgeBig(avg)}</div>
       </div>
       <div class="carnet-wrap">
@@ -2464,7 +2506,7 @@ function renderVistaDetalle(refId){
         <h2 style="color:var(--text);font-size:16px;margin-bottom:2px;">${r.nombre}</h2>
         <div class="ref-meta">${count} partido${count===1?'':'s'} informado${count===1?'':'s'} · categoría actual ${r.categoria}</div>
         ${datosPerfil(r)?`<div class="ref-meta">${datosPerfil(r)}</div>`:''}
-        ${asis.total?`<div class="ref-meta">${asistenciaTexto(asis)}</div>`:''}
+        ${(asis.total||asis.voluntarias)?`<div class="ref-meta">${asistenciaTexto(asis)}</div>`:''}
       </div>
       <div class="carnet-wrap">
         ${carnetFotoHtml(r)}
@@ -2718,15 +2760,21 @@ document.getElementById('af-col-oficial').addEventListener('click', ()=>{ sessio
 document.getElementById('af-add').addEventListener('click', async ()=>{
   const nombre = document.getElementById('af-nombre').value.trim();
   const fecha = document.getElementById('af-fecha').value || todayStr();
+  const grupo = document.getElementById('af-grupo').value;
   if(!nombre){ toast('Escribe el nombre de la formación'); return; }
-  state.formaciones.push({id:uid(), nombre, fecha, colectivo:session.colectivo, estados:{}});
+  if(!grupo){ toast('Elige el grupo convocado'); return; }
+  state.formaciones.push({id:uid(), nombre, fecha, colectivo:session.colectivo, grupo, estados:{}});
   await saveFormaciones();
   document.getElementById('af-nombre').value='';
+  document.getElementById('af-grupo').value='';
   renderAsistencia();
   toast('Formación creada');
 });
 
 function contarSi(f){ return Object.values(f.estados).filter(v=>v==='si').length; }
+// Asistentes voluntarios (de otro grupo) y asistentes que cuentan como obligatorios.
+function voluntariosDe(f){ return state.referees.filter(r=>r.colectivo===f.colectivo && esVoluntaria(f, r)); }
+function contarSiObligatorios(f){ return contarSi(f) - voluntariosDe(f).length; }
 function renderAsistencia(){
   document.getElementById('af-col-arbitro').classList.toggle('active', session.colectivo==='arbitro');
   document.getElementById('af-col-oficial').classList.toggle('active', session.colectivo==='oficial');
@@ -2739,7 +2787,7 @@ function renderAsistencia(){
   const elegibles = f => personas.filter(r=>formacionCuentaPara(f, r)).length;
   const totalPlazas = formaciones.reduce((s,f)=>s+elegibles(f),0);
   const mediaAsistencia = totalFormaciones && totalPlazas
-    ? (formaciones.reduce((s,f)=>s+contarSi(f),0) / totalPlazas * 100)
+    ? (formaciones.reduce((s,f)=>s+contarSiObligatorios(f),0) / totalPlazas * 100)
     : 0;
   document.getElementById('af-resumen').innerHTML = `
     <div class="summary-box"><div class="num tabular">${totalFormaciones}</div><div class="lbl">Formaciones</div></div>
@@ -2751,21 +2799,25 @@ function renderAsistencia(){
   lista.innerHTML = formaciones.length
     ? [...formaciones].sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(f=>`
       <div class="ref-card" data-fid="${f.id}">
-        <div class="ref-avg" style="background:var(--panel-2);color:var(--text-dim);">${contarSi(f)}/${elegibles(f)}</div>
+        <div class="ref-avg" style="background:var(--panel-2);color:var(--text-dim);">${contarSiObligatorios(f)}/${elegibles(f)}</div>
         <div class="ref-info">
-          <div class="ref-name">${escapeHtml(f.nombre)}</div>
-          <div class="ref-meta">${fmtDate(f.fecha)}</div>
+          <div class="ref-name">${escapeHtml(f.nombre)}<span class="badge">${grupoFormacionTexto(f.grupo)}</span></div>
+          <div class="ref-meta">${fmtDate(f.fecha)}${voluntariosDe(f).length?` · +${voluntariosDe(f).length} voluntario${voluntariosDe(f).length===1?'':'s'}`:''}</div>
         </div>
       </div>`).join('')
     : `<div class="empty">Todavía no hay formaciones de ${COLECTIVO_LABEL_PL[session.colectivo].toLowerCase()} creadas.</div>`;
   lista.querySelectorAll('[data-fid]').forEach(c=>c.addEventListener('click', ()=>showFormacionDetalle(c.dataset.fid)));
+  const sinGrupo = personas.filter(r=>!r.grupoFormacion).length;
+  document.getElementById('af-sin-grupo-aviso').innerHTML = sinGrupo
+    ? `<div class="banner-warn" style="margin:10px 0 0 0;">${sinGrupo} ${session.colectivo==='oficial'?'oficial':'árbitro'}${sinGrupo===1?'':'s'} sin grupo de formación: todas las formaciones les cuentan como obligatorias. Asígnalo en Ajustes (lista o asignación rápida).</div>`
+    : '';
 
   const global = document.getElementById('af-global');
   global.innerHTML = totalFormaciones
     ? personas.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'})).map(r=>{
         const asis = asistenciaStats(r.id);
         const pct = asis.total ? Math.round(asis.asistidas/asis.total*100) : 0;
-        return `<div class="list-item"><span>${r.nombre}<span class="badge">Cat. ${r.categoria}</span></span><span>${asis.asistidas}/${asis.total} · ${pct}%</span></div>`;
+        return `<div class="list-item"><span>${r.nombre}<span class="badge">${r.grupoFormacion?grupoFormacionTexto(r.grupoFormacion):'Sin grupo'}</span></span><span>${asis.asistidas}/${asis.total} · ${pct}%${asis.voluntarias?` · +${asis.voluntarias} vol.`:''}</span></div>`;
       }).join('')
     : `<div class="empty">Crea una formación para empezar a pasar lista.</div>`;
 }
@@ -2791,15 +2843,22 @@ function renderFormacionDetalle(fid){
   const f = state.formaciones.find(x=>x.id===fid);
   const personas = state.referees.filter(r=>r.colectivo===f.colectivo);
   const metaTexto = ()=>{
-    const n = personas.filter(r=>formacionCuentaPara(f, r)).length;
-    const fuera = personas.length - n;
-    return `${fmtDate(f.fecha)} · ${COLECTIVO_LABEL[f.colectivo]} · ${contarSi(f)}/${n} asistentes`
+    const delGrupo = personas.filter(r=>esDeSuGrupo(f, r));
+    const n = delGrupo.filter(r=>formacionCuentaPara(f, r)).length;
+    const fuera = delGrupo.length - n;
+    const vol = voluntariosDe(f).length;
+    return `${fmtDate(f.fecha)} · ${COLECTIVO_LABEL[f.colectivo]} · Grupo: ${grupoFormacionTexto(f.grupo)} · ${contarSiObligatorios(f)}/${n} asistentes`
+      + (vol ? ` · ${vol} voluntario${vol===1?'':'s'}` : '')
       + (fuera ? ` · ${fuera} con alta posterior (no cuentan)` : '');
   };
   document.getElementById('af-detalle-cabecera').innerHTML = `
     <h2 style="color:var(--text);font-size:18px;margin-bottom:2px;" id="af-detalle-titulo">${escapeHtml(f.nombre)}</h2>
     <div class="ref-meta">${metaTexto()}</div>
     <button class="btn secondary" id="af-edit-titulo" style="margin-top:12px;width:100%;">Editar título</button>
+    <label for="af-edit-grupo">Grupo convocado</label>
+    <select id="af-edit-grupo">
+      ${['iniciacion','zonal','todos'].map(g=>`<option value="${g}" ${(f.grupo||'todos')===g?'selected':''}>${g==='todos'?'Todos (ambos grupos)':GRUPOS_FORMACION[g]}</option>`).join('')}
+    </select>
     ${session.role==='admin' ? `<button class="btn danger" id="af-del-formacion" style="margin-top:8px;width:100%;">Eliminar esta formación</button>` : ''}
     <div class="grupo-titulo" style="margin-top:18px;">Material de la formación</div>
     <div id="af-material-lista"></div>
@@ -2860,17 +2919,39 @@ function renderFormacionDetalle(fid){
       toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado'));
     }
   });
+  document.getElementById('af-edit-grupo').addEventListener('change', async (ev)=>{
+    const anterior = f.grupo;
+    f.grupo = ev.target.value;
+    try{ await saveFormaciones(); toast(`Grupo convocado: ${grupoFormacionTexto(f.grupo)}`); }
+    catch(e){ f.grupo = anterior; toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado')); }
+    renderFormacionDetalle(fid);
+  });
   const chk = document.getElementById('af-checklist');
-  chk.innerHTML = personas.length
-    ? personas.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'})).map(r=>`
+  const ordenNombre = (a,b)=>a.nombre.localeCompare(b.nombre,'es',{sensitivity:'base'});
+  const convocados = personas.filter(r=>esDeSuGrupo(f, r)).sort(ordenNombre);
+  const otros = personas.filter(r=>!esDeSuGrupo(f, r)).sort(ordenNombre);
+  const filaConvocado = r=>`
       <div class="list-item">
-        <span>${r.nombre}<span class="badge">Cat. ${r.categoria}</span>${formacionCuentaPara(f, r)?'':'<span class="badge">Alta posterior</span>'}</span>
+        <span>${r.nombre}<span class="badge">Cat. ${r.categoria}</span>${r.grupoFormacion?'':'<span class="badge">Sin grupo</span>'}${formacionCuentaPara(f, r)?'':'<span class="badge">Alta posterior</span>'}</span>
         <select data-asis-ref="${r.id}" style="width:auto;">
           <option value="" ${!f.estados[r.id]?'selected':''}>${formacionCuentaPara({fecha:f.fecha, estados:{}}, r)?'No asistió':'No cuenta (alta posterior)'}</option>
           <option value="si" ${f.estados[r.id]==='si'?'selected':''}>Asistió</option>
           <option value="justificada" ${f.estados[r.id]==='justificada'?'selected':''}>Ausencia justificada</option>
         </select>
-      </div>`).join('')
+      </div>`;
+  const filaOtro = r=>`
+      <div class="list-item">
+        <span>${r.nombre}<span class="badge">${grupoFormacionTexto(r.grupoFormacion)}</span></span>
+        <select data-asis-ref="${r.id}" style="width:auto;">
+          <option value="" ${!f.estados[r.id]?'selected':''}>—</option>
+          <option value="si" ${f.estados[r.id]==='si'?'selected':''}>Asistió (voluntaria)</option>
+          ${f.estados[r.id]==='justificada'?`<option value="justificada" selected>Ausencia justificada</option>`:''}
+        </select>
+      </div>`;
+  chk.innerHTML = personas.length
+    ? (otros.length ? `<div class="grupo-titulo" style="margin-top:0;">Convocados · ${grupoFormacionTexto(f.grupo)} (${convocados.length})</div>` : '')
+      + (convocados.length ? convocados.map(filaConvocado).join('') : `<div class="empty">Nadie tiene asignado este grupo todavía.</div>`)
+      + (otros.length ? `<div class="grupo-titulo">Otros · asistencia voluntaria (${otros.length})</div><p class="note" style="margin-top:0;">No es obligatoria para ellos: si vienen, márcalo y queda registrado sin afectar a su asistencia obligatoria.</p>` + otros.map(filaOtro).join('') : '')
     : `<div class="empty">No hay ${COLECTIVO_LABEL_PL[f.colectivo].toLowerCase()} dados de alta todavía.</div>`;
   chk.querySelectorAll('[data-asis-ref]').forEach(sel=>sel.addEventListener('change', async ()=>{
     const rid = sel.dataset.asisRef;
@@ -2975,6 +3056,10 @@ function personaListHtml(r){
       <span>${r.nombre}
         <select data-cat-ref="${r.id}" style="display:inline-block;width:auto;padding:2px 6px;font-size:11px;margin:0 4px;">
           ${CATS_POR_COLECTIVO[r.colectivo||'arbitro'].map(c=>`<option value="${c}" ${r.categoria===c?'selected':''}>Cat. ${c}</option>`).join('')}
+        </select>
+        <select data-grupo-ref="${r.id}" style="display:inline-block;width:auto;padding:2px 6px;font-size:11px;margin:0 4px;">
+          <option value="" ${!r.grupoFormacion?'selected':''}>Sin grupo</option>
+          ${Object.entries(GRUPOS_FORMACION).map(([k,v])=>`<option value="${k}" ${r.grupoFormacion===k?'selected':''}>${v}</option>`).join('')}
         </select>
         <span class="badge">Código: ${r.codigo}</span>
         <span class="meta">${datosPerfil(r)||'Sin fecha de nacimiento ni de alta'}</span>
@@ -3195,6 +3280,19 @@ function renderAjustes(){
     }
   }));
   document.querySelectorAll('[data-edit-perfil-ref]').forEach(b=>b.addEventListener('click', ()=>openEditPerfilRef(b.dataset.editPerfilRef)));
+  document.querySelectorAll('[data-grupo-ref]').forEach(sel=>sel.addEventListener('change', async ()=>{
+    const ref = state.referees.find(r=>r.id===sel.dataset.grupoRef);
+    const anterior = ref.grupoFormacion;
+    if(sel.value) ref.grupoFormacion = sel.value; else delete ref.grupoFormacion;
+    try{
+      await saveReferees();
+      toast(`${ref.nombre}: grupo de formación ${sel.value?grupoFormacionTexto(sel.value):'sin asignar'}`);
+    }catch(e){
+      if(anterior) ref.grupoFormacion = anterior; else delete ref.grupoFormacion;
+      renderAjustes();
+      toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado'));
+    }
+  }));
   document.querySelectorAll('[data-cat-ref]').forEach(sel=>sel.addEventListener('change', async ()=>{
     const ref = state.referees.find(r=>r.id===sel.dataset.catRef);
     const anterior = ref.categoria;
@@ -3529,7 +3627,7 @@ document.getElementById('aj-add-arbitro').addEventListener('click', async ()=>{
   const nombre = document.getElementById('aj-arbitro-nombre').value.trim();
   const categoria = document.getElementById('aj-arbitro-cat').value;
   if(!nombre){ toast('Escribe el nombre del árbitro'); return; }
-  const nuevo = {id:uid(), nombre, categoria, colectivo:'arbitro', codigo:genCode()};
+  const nuevo = {id:uid(), nombre, categoria, colectivo:'arbitro', codigo:genCode(), grupoFormacion: document.getElementById('aj-arbitro-grupo').value};
   state.referees.push(nuevo);
   document.getElementById('aj-arbitro-nombre').value='';
   renderAjustes(); renderEvaluarArbitros();
@@ -3547,7 +3645,7 @@ document.getElementById('aj-add-oficial').addEventListener('click', async ()=>{
   const nombre = document.getElementById('aj-oficial-nombre').value.trim();
   const categoria = document.getElementById('aj-oficial-cat').value;
   if(!nombre){ toast('Escribe el nombre del oficial'); return; }
-  const nuevo = {id:uid(), nombre, categoria, colectivo:'oficial', codigo:genCode()};
+  const nuevo = {id:uid(), nombre, categoria, colectivo:'oficial', codigo:genCode(), grupoFormacion: document.getElementById('aj-oficial-grupo').value};
   state.referees.push(nuevo);
   document.getElementById('aj-oficial-nombre').value='';
   renderAjustes(); renderEvaluarArbitros();
@@ -3580,6 +3678,42 @@ document.getElementById('aj-add-formador').addEventListener('click', async ()=>{
   }catch(e){
     state.formadores = state.formadores.filter(f=>f.id!==nuevo.id);
     renderAjustes(); renderFormadoresSelect();
+    toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado'));
+  }
+});
+
+// Asignación rápida de grupos de formación a partir de una lista de nombres.
+function nombreClave(t){ return normalizarTexto(t).replace(/\s+/g,' '); }
+document.getElementById('gf-aplicar').addEventListener('click', async ()=>{
+  const col = document.getElementById('gf-colectivo').value;
+  const restoZonal = document.getElementById('gf-resto-zonal').checked;
+  const lineas = document.getElementById('gf-nombres').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  if(!lineas.length){ toast('Pega al menos un nombre'); return; }
+  const personas = state.referees.filter(r=>r.colectivo===col);
+  const porClave = new Map(); personas.forEach(r=>{ const k=nombreClave(r.nombre); porClave.set(k, (porClave.get(k)||[]).concat([r])); });
+  const iniciacion = new Set(), noEncontrados = [], repetidos = [];
+  lineas.forEach(l=>{
+    const m = porClave.get(nombreClave(l));
+    if(!m) noEncontrados.push(l);
+    else if(m.length>1) repetidos.push(l);
+    else iniciacion.add(m[0].id);
+  });
+  const nZonal = restoZonal ? personas.filter(r=>!iniciacion.has(r.id)).length : 0;
+  const ok = await showConfirm(`Se asignarán ${iniciacion.size} a Iniciación${restoZonal?` y ${nZonal} a Zonales`:''}.${noEncontrados.length?` ${noEncontrados.length} nombre${noEncontrados.length===1?'':'s'} no se han encontrado (se listan después).`:''}${repetidos.length?` ${repetidos.length} coinciden con varias personas y no se tocan.`:''} ¿Continuar?`, 'Aplicar');
+  if(!ok) return;
+  const antes = personas.map(r=>[r, r.grupoFormacion]);
+  personas.forEach(r=>{ if(iniciacion.has(r.id)) r.grupoFormacion='iniciacion'; else if(restoZonal) r.grupoFormacion='zonal'; });
+  try{
+    await saveReferees();
+    toast('Grupos de formación actualizados');
+    renderAjustes();
+    const res = document.getElementById('gf-resultado');
+    res.innerHTML = `<div class="banner-warn" style="margin-top:10px;border-color:var(--cyan);background:rgba(73,199,194,.08);">Iniciación: ${iniciacion.size}${restoZonal?` · Zonales: ${nZonal}`:''}`
+      + (noEncontrados.length?`<br><strong>No encontrados:</strong> ${noEncontrados.map(escapeHtml).join(', ')}`:'')
+      + (repetidos.length?`<br><strong>Con varias coincidencias (no tocados):</strong> ${repetidos.map(escapeHtml).join(', ')}`:'')
+      + `</div>`;
+  }catch(e){
+    antes.forEach(([r,g])=>{ if(g) r.grupoFormacion=g; else delete r.grupoFormacion; });
     toast('No se pudo guardar: '+(e&&e.message?e.message:'error de guardado'));
   }
 });
